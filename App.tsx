@@ -165,17 +165,20 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('form')}>
+              {/* REMOVED onError that hides image */}
               <img 
                 src="./LOGO.png" 
-                alt="University Logo" 
+                alt="NUCK Logo" 
                 className="h-10 w-10 sm:h-12 sm:w-12 bg-white rounded-full p-0.5 object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
               />
               <div className="hidden sm:block">
-                <h1 className="font-moul text-lg leading-tight tracking-wide">សាកលវិទ្យាល័យកម្ពុជា</h1>
-                <p className="text-xs text-teal-200 font-sans">Internal Quality Assurance Office</p>
+                {/* Updated University Name - Adjusted Text Size for Length */}
+                <h1 className="font-moul text-xs sm:text-sm md:text-base leading-tight tracking-wide line-clamp-2 max-w-md">
+                   សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម
+                </h1>
+                <p className="text-[10px] sm:text-xs text-teal-200 font-sans truncate max-w-xs">
+                   National University of Cheasim Kamchaymear, Kampong Cham Campus
+                </p>
               </div>
             </div>
             
@@ -228,8 +231,8 @@ function App() {
       {isPublicView && (
          <div className="bg-teal-800 text-white p-4 text-center print:hidden">
              <img src="./LOGO.png" alt="Logo" className="h-16 w-auto mx-auto mb-2 object-contain" />
-             <h1 className="font-moul text-xl">លទ្ធផលនៃការវាយតម្លៃសាស្ត្រាចារ្យ (Public Result)</h1>
-             <p className="text-sm opacity-80">View Only Mode</p>
+             <h1 className="font-moul text-lg sm:text-xl">លទ្ធផលនៃការវាយតម្លៃសាស្ត្រាចារ្យ (Public Result)</h1>
+             <p className="text-sm opacity-80 font-sans">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</p>
          </div>
       )}
 
@@ -243,8 +246,16 @@ function App() {
                     alt="University Logo" 
                     className="h-20 w-auto mx-auto mb-4 object-contain"
                 />
-                <h2 className="text-2xl font-moul text-gray-800 mb-2 leading-relaxed">សន្លឹកកិច្ចការវាយតម្លៃការបង្រៀនរបស់សាស្ត្រាចារ្យ</h2>
-                <p className="text-gray-600 font-sans">សូមនិស្សិតវាយតម្លៃដោយសុក្រឹតភាព (Please evaluate objectively)</p>
+                <h1 className="text-xl sm:text-2xl font-moul text-teal-800 mb-2">
+                    សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម
+                </h1>
+                <h2 className="text-lg font-bold text-gray-700 mb-4">
+                    National University of Cheasim Kamchaymear, Kampong Cham Campus
+                </h2>
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 inline-block">
+                    <h3 className="text-lg font-moul text-gray-800 leading-relaxed">សន្លឹកកិច្ចការវាយតម្លៃការបង្រៀនរបស់សាស្ត្រាចារ្យ</h3>
+                    <p className="text-gray-600 font-sans text-sm mt-1">សូមនិស្សិតវាយតម្លៃដោយសុក្រឹតភាព (Please evaluate objectively)</p>
+                </div>
              </div>
             <EvaluationForm
               teacherInfo={teacherInfo}
@@ -319,8 +330,9 @@ function App() {
       
       {/* Footer */}
       <footer className="bg-gray-800 text-gray-400 py-6 text-center text-sm print:hidden">
-        <p className="font-sans">&copy; {new Date().getFullYear()} University Evaluation System.</p>
-        <p className="text-xs mt-1 text-gray-600 font-sans">Powered by Google Sheets Integration</p>
+        <p className="font-moul mb-1">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</p>
+        <p className="font-sans text-xs opacity-70">National University of Cheasim Kamchaymear, Kampong Cham Campus</p>
+        <p className="font-sans text-xs mt-2">&copy; {new Date().getFullYear()} Quality Assurance System.</p>
       </footer>
     </div>
   );
