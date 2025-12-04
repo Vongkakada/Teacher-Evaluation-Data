@@ -1,8 +1,7 @@
 import { Category, RatingValue } from './types';
 
-// TODO: ជំនួសកន្លែងនេះដោយ Web App URL ដែលអ្នកបាន Copy ពី Google Apps Script
-// ឧទាហរណ៍: "https://script.google.com/macros/s/AKfycbx.../exec"
-export const GOOGLE_SHEETS_SCRIPT_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE";
+// Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
+export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweLMkgaCjMayMq0hLTYz9O_qFjI_WlVBRUWjPb2dLoD91qJQ2o_s19kW1gjhvLohu8HQ/exec";
 
 export const TEACHER_INFO_DEFAULT = {
   name: 'ជឹម វុឌថា', // Default to first teacher

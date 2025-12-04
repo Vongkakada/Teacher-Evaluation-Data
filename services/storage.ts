@@ -9,41 +9,44 @@ interface SheetSubmission extends Submission {
 }
 
 export const saveSubmission = async (submission: SheetSubmission): Promise<boolean> => {
-  if (GOOGLE_SHEETS_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') {
+  if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     console.warn('Google Script URL not set. Saving to localStorage for demo.');
     saveToLocal(submission);
     return true;
   }
 
   try {
-    // Send data to Google Sheet
-    // Note: 'no-cors' mode is used because Google Scripts don't standardly return CORS headers for simple web apps.
-    // However, 'no-cors' means we can't read the response. We assume success if no network error.
-    // To properly read response, the Google Script needs special setup, but simple POST usually works.
-    
-    // Actually, for Google Apps Script Web App, we can use standard POST if we handle redirects, 
-    // but the easiest way from client-side is sending as text/plain to avoid preflight checks.
-    
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+    // We use "Content-Type": "text/plain;charset=utf-8" to force a "Simple Request".
+    // This prevents the browser from sending an OPTIONS preflight request, which Google Apps Script doesn't handle.
+    // 'no-cors' mode is cleaner for logging but means we can't read the response JSON. 
+    // Since we trust the GAS to return 200 on success, this is acceptable for submission.
+    await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify(submission),
+      mode: 'no-cors', 
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
     });
 
     return true;
   } catch (error) {
     console.error('Error saving to Google Sheets:', error);
-    alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ។ សូមព្យាយាមម្តងទៀត។');
+    alert('មានបញ្ហាក្នុងការរក្សាទុកទិន្នន័យ។ សូមព្យាយាមម្តងទៀត។ (Error saving data)');
     return false;
   }
 };
 
 export const getSubmissions = async (): Promise<Submission[]> => {
-  if (GOOGLE_SHEETS_SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') {
+  if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     return getFromLocal();
   }
 
   try {
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL);
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
     const data = await response.json();
     return data;
   } catch (error) {
