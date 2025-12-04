@@ -94,8 +94,8 @@ function App() {
                 <GraduationCap className="h-6 w-6 text-teal-700" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="font-bold text-lg leading-tight">សាកលវិទ្យាល័យកម្ពុជា</h1>
-                <p className="text-xs text-teal-200">Internal Quality Assurance Office</p>
+                <h1 className="font-moul text-lg leading-tight tracking-wide">សាកលវិទ្យាល័យកម្ពុជា</h1>
+                <p className="text-xs text-teal-200 font-sans">Internal Quality Assurance Office</p>
               </div>
             </div>
             
@@ -148,8 +148,8 @@ function App() {
         {view === 'form' && (
           <div className="animate-fade-in">
              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">សន្លឹកកិច្ចការវាយតម្លៃការបង្រៀនរបស់សាស្ត្រាចារ្យ</h2>
-                <p className="text-gray-600">សូមនិស្សិតវាយតម្លៃដោយសុក្រឹតភាព (Please evaluate objectively)</p>
+                <h2 className="text-2xl font-moul text-gray-800 mb-2 leading-relaxed">សន្លឹកកិច្ចការវាយតម្លៃការបង្រៀនរបស់សាស្ត្រាចារ្យ</h2>
+                <p className="text-gray-600 font-sans">សូមនិស្សិតវាយតម្លៃដោយសុក្រឹតភាព (Please evaluate objectively)</p>
              </div>
             <EvaluationForm
               teacherInfo={teacherInfo}
@@ -220,8 +220,8 @@ function App() {
       
       {/* Footer */}
       <footer className="bg-gray-800 text-gray-400 py-6 text-center text-sm print:hidden">
-        <p>&copy; {new Date().getFullYear()} University Evaluation System.</p>
-        <p className="text-xs mt-1 text-gray-600">Powered by Google Sheets Integration</p>
+        <p className="font-sans">&copy; {new Date().getFullYear()} University Evaluation System.</p>
+        <p className="text-xs mt-1 text-gray-600 font-sans">Powered by Google Sheets Integration</p>
       </footer>
     </div>
   );

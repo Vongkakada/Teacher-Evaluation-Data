@@ -32,7 +32,7 @@ export const LinkGenerator: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-      <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+      <h2 className="text-xl font-moul text-gray-800 mb-6 flex items-center gap-2">
         <QrCode className="text-blue-600" />
         បង្កើត QR Code សម្រាប់ថ្នាក់រៀន (Class Setup)
       </h2>

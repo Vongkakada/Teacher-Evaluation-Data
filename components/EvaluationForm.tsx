@@ -63,9 +63,9 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     <div className="max-w-3xl mx-auto pb-32">
       {/* Header Info Card */}
       <div className={`rounded-lg shadow-sm border p-6 mb-6 ${isReadOnlyMode ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
-        <h2 className="text-xl font-bold text-blue-800 mb-4 border-b pb-2 flex justify-between">
+        <h2 className="text-xl font-moul text-blue-800 mb-4 border-b pb-2 flex justify-between">
           <span>ព័ត៌មានទូទៅ (General Info)</span>
-          {isReadOnlyMode && <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded">Locked by Admin</span>}
+          {isReadOnlyMode && <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded font-sans">Locked</span>}
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
@@ -104,7 +104,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
         {categories.map((category) => (
           <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-blue-50 px-6 py-3 border-b border-blue-100 flex justify-between items-center">
-              <h3 className="font-bold text-lg text-blue-900">{category.title}</h3>
+              <h3 className="font-moul text-lg text-blue-900">{category.title}</h3>
             </div>
             <div className="p-6 space-y-8">
               {category.questions.map((q, index) => {
@@ -133,7 +133,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
 
         {/* Comment Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <label className="block font-bold text-gray-800 mb-2">សំណូមពរ ឬមតិយោបល់ផ្សេងៗ (Comments)</label>
+          <label className="block font-moul text-gray-800 mb-4 text-lg">សំណូមពរ ឬមតិយោបល់ផ្សេងៗ (Comments)</label>
           <textarea
             className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             rows={4}

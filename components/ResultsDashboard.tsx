@@ -151,7 +151,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       {/* Header Summary for Print/Admin */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 print:shadow-none print:border-none">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 print:hidden gap-4">
-            <h2 className="text-2xl font-bold text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
+            <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
             <div className="flex space-x-2">
                 <button 
                     onClick={handleDownloadCSV} 
@@ -172,19 +172,19 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
            <div>
-             <p className="text-gray-500 text-xs uppercase">ចំនួននិស្សិត (Students)</p>
+             <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
              <p className="text-2xl font-bold text-blue-900">{totalStudents}</p>
            </div>
            <div>
-             <p className="text-gray-500 text-xs uppercase">ពិន្ទុសរុប (Total Score)</p>
+             <p className="text-gray-500 text-xs uppercase font-bold">ពិន្ទុសរុប (Total Score)</p>
              <p className="text-2xl font-bold text-blue-900">{finalScore.toFixed(2)}</p>
            </div>
            <div>
-             <p className="text-gray-500 text-xs uppercase">និទ្ទេស (Grade)</p>
+             <p className="text-gray-500 text-xs uppercase font-bold">និទ្ទេស (Grade)</p>
              <p className={`text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
            </div>
            <div>
-             <p className="text-gray-500 text-xs uppercase">ស្ថានភាព (Status)</p>
+             <p className="text-gray-500 text-xs uppercase font-bold">ស្ថានភាព (Status)</p>
              <p className="text-2xl font-bold text-gray-900">{finalGrade !== 'E' ? 'ជាប់ (Pass)' : 'ធ្លាក់ (Fail)'}</p>
            </div>
         </div>
@@ -262,7 +262,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       {/* Charts Section (Hidden on Print) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-             <h3 className="font-bold text-gray-700 mb-4">ពិន្ទុតាមផ្នែក (Score by Category)</h3>
+             <h3 className="font-moul text-gray-700 mb-4 text-lg">ពិន្ទុតាមផ្នែក (Score by Category)</h3>
              <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
@@ -280,7 +280,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
           
            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-             <h3 className="font-bold text-gray-700 mb-4">សំណូមពររបស់និស្សិត (Comments)</h3>
+             <h3 className="font-moul text-gray-700 mb-4 text-lg">សំណូមពររបស់និស្សិត (Comments)</h3>
              <div className="h-64 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                 {submissions.filter(s => s.comment).map((s, i) => (
                     <div key={s.id} className="p-3 bg-gray-50 rounded border border-gray-100 text-sm italic text-gray-600">
