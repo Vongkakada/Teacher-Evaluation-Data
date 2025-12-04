@@ -248,7 +248,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         
         {/* Print Header with Logo and New Name */}
         <div className="hidden print:flex flex-col items-center mb-8 border-b border-gray-300 pb-4">
-             <img src="/LOGO.png" alt="NUCK Logo" className="h-32 w-auto mb-2 object-contain" />
+             <img src="/logo.ico" alt="NUCK Logo" className="h-32 w-auto mb-2 object-contain" />
              <h1 className="text-xl font-moul text-black text-center">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</h1>
              <h2 className="text-sm font-bold text-gray-800 text-center uppercase tracking-wide">National University of Cheasim Kamchaymear, Kampong Cham Campus</h2>
              <p className="text-sm text-gray-600 font-bold mb-4 mt-2">Internal Quality Assurance Office</p>
