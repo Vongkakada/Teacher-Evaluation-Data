@@ -60,7 +60,7 @@ export const clearSubmissions = () => {
    localStorage.removeItem('teacher_eval_submissions');
 };
 
-// --- Fallback Local Storage Logic (Keep this just in case) ---
+// --- Fallback Local Storage Logic ---
 const getFromLocal = (): Submission[] => {
   const data = localStorage.getItem('teacher_eval_submissions');
   return data ? JSON.parse(data) : [];
@@ -70,4 +70,17 @@ const saveToLocal = (submission: Submission) => {
   const existing = getFromLocal();
   const updated = [...existing, submission];
   localStorage.setItem('teacher_eval_submissions', JSON.stringify(updated));
+};
+
+// --- Public Link Status Management ---
+// We simulate a database of "active public links" using localStorage
+export const setPublicLinkStatus = (teacherName: string, isActive: boolean) => {
+    const key = `public_link_status_${teacherName}`;
+    localStorage.setItem(key, JSON.stringify(isActive));
+};
+
+export const getPublicLinkStatus = (teacherName: string): boolean => {
+    const key = `public_link_status_${teacherName}`;
+    const status = localStorage.getItem(key);
+    return status ? JSON.parse(status) : false; // Default is closed
 };

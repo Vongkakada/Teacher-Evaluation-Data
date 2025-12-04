@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { TEACHERS_LIST, TEACHER_INFO_DEFAULT } from '../constants';
 import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check } from 'lucide-react';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock } from 'lucide-react';
 
 export const LinkGenerator: React.FC = () => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isShortening, setIsShortening] = useState(false);
+
+  // Expiry State
+  const [expiryType, setExpiryType] = useState<'unlimited' | '24h' | '48h' | 'custom'>('24h');
+  const [customDate, setCustomDate] = useState('');
 
   const generateLink = () => {
     // Create URL search params
@@ -17,9 +22,46 @@ export const LinkGenerator: React.FC = () => {
     params.set('date', info.date);
     params.set('shift', info.shift);
 
+    // Calculate Expiration
+    let expiryTimestamp = 0;
+    const now = Date.now();
+
+    if (expiryType === '24h') {
+        expiryTimestamp = now + (24 * 60 * 60 * 1000); // +24 hours
+    } else if (expiryType === '48h') {
+        expiryTimestamp = now + (48 * 60 * 60 * 1000); // +48 hours
+    } else if (expiryType === 'custom' && customDate) {
+        expiryTimestamp = new Date(customDate).getTime();
+    }
+
+    if (expiryTimestamp > 0) {
+        params.set('exp', expiryTimestamp.toString());
+    }
+
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     setGeneratedLink(url);
     setCopied(false);
+  };
+
+  const shortenLink = async () => {
+    if (!generatedLink) return;
+    
+    setIsShortening(true);
+    try {
+      // Using TinyURL's free API to shorten the link
+      const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(generatedLink)}`);
+      if (response.ok) {
+        const shortUrl = await response.text();
+        setGeneratedLink(shortUrl);
+      } else {
+        alert('មិនអាចបង្រួម Link បានទេ។ សូមប្រើ Link វែងជំនួស។ (Failed to shorten)');
+      }
+    } catch (error) {
+      console.error('Error shortening link:', error);
+      alert('មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់សេវាកម្មបង្រួម Link។');
+    } finally {
+      setIsShortening(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -29,6 +71,7 @@ export const LinkGenerator: React.FC = () => {
   };
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedLink)}`;
+  const isLongUrl = generatedLink.includes('teacher=');
 
   return (
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
@@ -77,9 +120,44 @@ export const LinkGenerator: React.FC = () => {
         </div>
       </div>
 
+      {/* Expiry Settings */}
+      <div className="mb-6 bg-blue-50 p-4 rounded border border-blue-100">
+        <h3 className="font-bold text-gray-700 text-sm mb-3 flex items-center gap-2">
+            <Clock size={16} />
+            កំណត់សុពលភាព Link (Link Expiry)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <select 
+                    value={expiryType}
+                    onChange={(e) => setExpiryType(e.target.value as any)}
+                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                >
+                    <option value="24h">មានសុពលភាព ១ថ្ងៃ (24 Hours)</option>
+                    <option value="48h">មានសុពលភាព ២ថ្ងៃ (48 Hours)</option>
+                    <option value="custom">កំណត់កាលបរិច្ឆេទ (Custom Date)</option>
+                    <option value="unlimited">គ្មានកំណត់ (Unlimited)</option>
+                </select>
+            </div>
+            {expiryType === 'custom' && (
+                <div>
+                    <input 
+                        type="datetime-local" 
+                        value={customDate}
+                        onChange={(e) => setCustomDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded p-2 text-sm"
+                    />
+                </div>
+            )}
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+            * ក្រោយពេលផុតកំណត់ Link នឹងមិនអាចប្រើដើម្បីវាយតម្លៃបានទៀតទេ។
+        </p>
+      </div>
+
       <button 
         onClick={generateLink}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition mb-6"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition mb-6 shadow-md"
       >
         បង្កើត Link និង QR Code
       </button>
@@ -92,19 +170,42 @@ export const LinkGenerator: React.FC = () => {
             <img src={qrImageUrl} alt="QR Code" className="border-4 border-white shadow-lg rounded-lg" />
           </div>
 
-          <div className="flex items-center gap-2 max-w-full">
+          <div className="flex flex-col sm:flex-row items-center gap-2 max-w-full">
             <input 
               readOnly 
               value={generatedLink} 
-              className="flex-1 bg-white border border-gray-300 text-gray-500 text-sm p-2 rounded"
+              className="w-full sm:flex-1 bg-white border border-gray-300 text-gray-500 text-sm p-2 rounded focus:outline-none"
             />
-            <button 
-              onClick={copyToClipboard}
-              className={`p-2 rounded ${copied ? 'bg-green-100 text-green-700' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'}`}
-            >
-              {copied ? <Check size={20} /> : <Copy size={20} />}
-            </button>
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              {/* Shorten Button - Only show if URL is long */}
+              {isLongUrl && (
+                <button
+                  onClick={shortenLink}
+                  disabled={isShortening}
+                  title="បង្រួម Link ឱ្យខ្លី"
+                  className="p-2 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 transition-colors flex items-center justify-center flex-1 sm:flex-none"
+                >
+                  {isShortening ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
+                  <span className="ml-2 sm:hidden text-sm">បង្រួម</span>
+                </button>
+              )}
+
+              <button 
+                onClick={copyToClipboard}
+                title="Copy Link"
+                className={`p-2 rounded flex items-center justify-center flex-1 sm:flex-none transition-colors ${copied ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+              >
+                {copied ? <Check size={20} /> : <Copy size={20} />}
+                <span className="ml-2 sm:hidden text-sm">Copy</span>
+              </button>
+            </div>
           </div>
+          {isLongUrl && (
+             <p className="text-xs text-gray-400 mt-2 text-left sm:text-center">
+               Link វែងដោយសារមានផ្ទុកទិន្នន័យ (ឈ្មោះ, បន្ទប់, ...). ចុចប៊ូតុង <Wand2 size={12} className="inline"/> ដើម្បីបង្រួម។
+             </p>
+          )}
         </div>
       )}
     </div>

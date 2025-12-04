@@ -1,27 +1,66 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Category, Submission, TeacherInfo } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, Share2, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
 
 interface ResultsDashboardProps {
   submissions: Submission[];
   categories: Category[];
   teacherInfo: TeacherInfo;
+  isPublicView?: boolean;
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   submissions,
   categories,
   teacherInfo,
+  isPublicView = false,
 }) => {
   const totalStudents = submissions.length;
+  
+  // --- Share Link Logic ---
+  const [isShareActive, setIsShareActive] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  if (totalStudents === 0) {
+  useEffect(() => {
+     // Load share status when teacher changes
+     setIsShareActive(getPublicLinkStatus(teacherInfo.name));
+  }, [teacherInfo.name]);
+
+  const handleToggleShare = () => {
+      const newState = !isShareActive;
+      setIsShareActive(newState);
+      setPublicLinkStatus(teacherInfo.name, newState);
+  };
+
+  const getPublicLink = () => {
+      const params = new URLSearchParams();
+      params.set('mode', 'public_results');
+      params.set('teacher', teacherInfo.name);
+      return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  };
+
+  const copyToClipboard = () => {
+      navigator.clipboard.writeText(getPublicLink());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+  };
+  // ------------------------
+
+  if (totalStudents === 0 && !isPublicView) {
     return (
       <div className="flex items-center justify-center h-64 bg-white rounded-lg border border-dashed border-gray-300">
         <p className="text-gray-500">មិនទាន់មានទិន្នន័យវាយតម្លៃនៅឡើយ។ (No submissions yet)</p>
       </div>
     );
+  } else if (totalStudents === 0 && isPublicView) {
+      return (
+        <div className="flex items-center justify-center h-64 bg-white rounded-lg border border-dashed border-gray-300">
+             <p className="text-gray-500">មិនទាន់មានទិន្នន័យវាយតម្លៃសម្រាប់បង្ហាញទេ។</p>
+        </div>
+      );
   }
 
   // --- CSV Export Logic ---
@@ -148,17 +187,85 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
   return (
     <div className="space-y-8 pb-20 print:p-0 print:space-y-4">
+      
+      {/* --- Share Control Panel (Admin Only) --- */}
+      {!isPublicView && (
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden transition-all">
+              <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-bold flex items-center gap-2">
+                      <Share2 className="text-blue-600" size={20} />
+                      ចែករំលែកលទ្ធផល (Public Share)
+                  </h3>
+                  <button 
+                    onClick={() => setShowSharePanel(!showSharePanel)}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                      {showSharePanel ? 'Hide Settings' : 'Show Settings'}
+                  </button>
+              </div>
+
+              {showSharePanel && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded border border-gray-200 animate-fade-in">
+                      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                              <button 
+                                  onClick={handleToggleShare}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isShareActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                              >
+                                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${isShareActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                              </button>
+                              <span className={`font-medium ${isShareActive ? 'text-green-600' : 'text-gray-500'}`}>
+                                  {isShareActive ? 'Public Link ដំណើរការ (Active)' : 'Public Link ត្រូវបានបិទ (Disabled)'}
+                              </span>
+                          </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                          <input 
+                              readOnly 
+                              value={getPublicLink()} 
+                              className={`flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-600 focus:outline-none ${!isShareActive ? 'opacity-50 bg-gray-100' : 'bg-white'}`}
+                          />
+                          <button 
+                              onClick={copyToClipboard}
+                              disabled={!isShareActive}
+                              className={`flex items-center justify-center gap-2 px-4 py-2 rounded text-white font-medium transition ${isShareActive ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+                          >
+                              {copied ? <Check size={16} /> : <Copy size={16} />}
+                              Copy Link
+                          </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                          * នៅពេលបិទ (Disable) អ្នកផ្សេងដែលមាន Link នេះនឹងមិនអាចចូលមើលលទ្ធផលបានទេ។
+                      </p>
+                  </div>
+              )}
+          </div>
+      )}
+
       {/* Header Summary for Print/Admin */}
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 print:shadow-none print:border-none">
+        
+        {/* Print Header with Logo */}
+        <div className="hidden print:flex flex-col items-center mb-8 border-b border-gray-300 pb-4">
+             <img src="./LOGO.png" alt="UC Logo" className="h-24 w-auto mb-2 object-contain" />
+             <h1 className="text-2xl font-moul text-black">សាកលវិទ្យាល័យកម្ពុជា</h1>
+             <p className="text-sm text-gray-600 font-bold mb-4">Internal Quality Assurance Office</p>
+             <h2 className="text-xl font-bold underline">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
+        </div>
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 print:hidden gap-4">
             <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
+            
+            {/* Action Buttons: Hidden in Public View */}
+            {!isPublicView && (
             <div className="flex space-x-2">
                 <button 
                     onClick={handleDownloadCSV} 
                     className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white transition shadow-sm"
                 >
                     <Download size={18} />
-                    <span>Download Data (CSV)</span>
+                    <span>Download CSV</span>
                 </button>
                 <button 
                     onClick={() => window.print()} 
@@ -168,6 +275,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                     <span>Print Report</span>
                 </button>
             </div>
+            )}
+
+            {/* Print Button for Public View */}
+            {isPublicView && (
+                <button 
+                    onClick={() => window.print()} 
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition"
+                >
+                    <Printer size={18} />
+                    <span>Print Report</span>
+                </button>
+            )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">

@@ -4,17 +4,20 @@ import { ResultsDashboard } from './components/ResultsDashboard';
 import { LinkGenerator } from './components/LinkGenerator';
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
 import { Submission, TeacherInfo } from './types';
-import { saveSubmission, getSubmissions, clearSubmissions } from './services/storage';
-import { GraduationCap, LayoutDashboard, FileText, QrCode, Trash2, RefreshCw } from 'lucide-react';
+import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus } from './services/storage';
+import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle } from 'lucide-react';
 
 function App() {
-  const [view, setView] = useState<'form' | 'dashboard' | 'generator'>('form');
+  const [view, setView] = useState<'form' | 'dashboard' | 'generator' | 'access_denied' | 'expired'>('form');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
   // State for the form (Teacher Info)
   const [teacherInfo, setTeacherInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
+  
+  // New State: Is the user viewing a Public Result Link?
+  const [isPublicView, setIsPublicView] = useState(false);
 
   // Function to load data from Google Sheets
   const loadData = async () => {
@@ -26,11 +29,43 @@ function App() {
 
   // Check URL params on mount
   useEffect(() => {
-    // 1. Check URL Params (if student scanned a QR code)
     const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
     const teacherParam = params.get('teacher');
+    const expiryParam = params.get('exp');
+
+    // Case 1: Public Results View
+    if (mode === 'public_results' && teacherParam) {
+        // Check if access is allowed
+        const isAllowed = getPublicLinkStatus(teacherParam);
+        
+        if (isAllowed) {
+            setTeacherInfo({
+                ...TEACHER_INFO_DEFAULT,
+                name: teacherParam,
+                subject: params.get('subject') || TEACHER_INFO_DEFAULT.subject,
+            });
+            setSelectedTeacherDashboard(teacherParam); // Set filter for dashboard
+            setIsPublicView(true);
+            setView('dashboard');
+            loadData(); // Load data immediately for public view
+        } else {
+            setView('access_denied');
+        }
+        return;
+    }
     
+    // Case 2: Student Scanning QR Code (Form View)
     if (teacherParam) {
+        // Check Expiration
+        if (expiryParam) {
+            const expiryTime = parseInt(expiryParam, 10);
+            if (!isNaN(expiryTime) && Date.now() > expiryTime) {
+                setView('expired');
+                return;
+            }
+        }
+
       setTeacherInfo({
         ...TEACHER_INFO_DEFAULT,
         name: teacherParam,
@@ -43,8 +78,10 @@ function App() {
       setView('form');
     }
     
-    // 2. Load initial data (in background)
-    loadData();
+    // 3. Load initial data (in background) if not public view
+    if (mode !== 'public_results' && !teacherParam) {
+        loadData();
+    }
   }, []);
 
   const handleSubmission = async (submission: Submission) => {
@@ -83,16 +120,59 @@ function App() {
       name: selectedTeacherDashboard
   };
 
+  // Render Access Denied Page
+  if (view === 'access_denied') {
+      return (
+          <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+              <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
+                  <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-8 h-8 text-red-600" />
+                  </div>
+                  <h1 className="text-xl font-moul text-red-700 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
+                  <p className="text-gray-600 mb-6">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។</p>
+                  <a href="/" className="inline-block bg-teal-700 text-white px-6 py-2 rounded hover:bg-teal-800 transition">
+                      ត្រឡប់ទៅទំព័រដើម
+                  </a>
+              </div>
+          </div>
+      );
+  }
+
+  // Render Expired Page
+  if (view === 'expired') {
+    return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
+            <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
+                <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="w-8 h-8 text-orange-600" />
+                </div>
+                <h1 className="text-xl font-moul text-orange-700 mb-2">Link ផុតកំណត់ (Expired)</h1>
+                <p className="text-gray-600 mb-6">សុំទោស Link សម្រាប់វាយតម្លៃមួយនេះបានផុតកំណត់ហើយ។ សូមទាក់ទងសាស្ត្រាចារ្យ ឬការិយាល័យជំនាញ។</p>
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded border border-gray-200">
+                    <AlertCircle className="inline w-4 h-4 mr-1 mb-0.5" />
+                    ការវាយតម្លៃត្រូវបានបិទបញ្ចប់
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
-      {/* Navbar */}
+      {/* Navbar - Hidden on Public View */}
+      {!isPublicView && (
       <nav className="bg-teal-700 text-white shadow-md sticky top-0 z-40 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('form')}>
-              <div className="bg-white p-1.5 rounded-full">
-                <GraduationCap className="h-6 w-6 text-teal-700" />
-              </div>
+              <img 
+                src="./LOGO.png" 
+                alt="University Logo" 
+                className="h-10 w-10 sm:h-12 sm:w-12 bg-white rounded-full p-0.5 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
               <div className="hidden sm:block">
                 <h1 className="font-moul text-lg leading-tight tracking-wide">សាកលវិទ្យាល័យកម្ពុជា</h1>
                 <p className="text-xs text-teal-200 font-sans">Internal Quality Assurance Office</p>
@@ -142,12 +222,27 @@ function App() {
           </div>
         </div>
       </nav>
+      )}
+      
+      {/* Public View Header */}
+      {isPublicView && (
+         <div className="bg-teal-800 text-white p-4 text-center print:hidden">
+             <img src="./LOGO.png" alt="Logo" className="h-16 w-auto mx-auto mb-2 object-contain" />
+             <h1 className="font-moul text-xl">លទ្ធផលនៃការវាយតម្លៃសាស្ត្រាចារ្យ (Public Result)</h1>
+             <p className="text-sm opacity-80">View Only Mode</p>
+         </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {view === 'form' && (
           <div className="animate-fade-in">
              <div className="text-center mb-8">
+                <img 
+                    src="./LOGO.png" 
+                    alt="University Logo" 
+                    className="h-20 w-auto mx-auto mb-4 object-contain"
+                />
                 <h2 className="text-2xl font-moul text-gray-800 mb-2 leading-relaxed">សន្លឹកកិច្ចការវាយតម្លៃការបង្រៀនរបស់សាស្ត្រាចារ្យ</h2>
                 <p className="text-gray-600 font-sans">សូមនិស្សិតវាយតម្លៃដោយសុក្រឹតភាព (Please evaluate objectively)</p>
              </div>
@@ -162,7 +257,7 @@ function App() {
           </div>
         )}
 
-        {view === 'generator' && !isReadOnlyMode && (
+        {view === 'generator' && !isReadOnlyMode && !isPublicView && (
              <div className="animate-fade-in">
                  <LinkGenerator />
              </div>
@@ -170,37 +265,40 @@ function App() {
 
         {view === 'dashboard' && !isReadOnlyMode && (
           <div className="animate-fade-in">
-             <div className="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden">
-                <div className="flex items-center space-x-2 mb-4 md:mb-0">
-                   <span className="text-sm font-bold text-gray-600">មើលលទ្ធផលរបស់:</span>
-                   <select 
-                      value={selectedTeacherDashboard}
-                      onChange={(e) => setSelectedTeacherDashboard(e.target.value)}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm font-bold text-blue-800 focus:ring-blue-500 cursor-pointer"
-                   >
-                      {TEACHERS_LIST.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                   </select>
-                </div>
-                
-                <div className="flex space-x-2">
-                    <button 
-                        onClick={loadData}
-                        className="text-blue-600 text-sm hover:bg-blue-50 px-3 py-2 rounded flex items-center space-x-1"
+             {/* Admin Controls (Hidden in Public View) */}
+             {!isPublicView && (
+                 <div className="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden">
+                    <div className="flex items-center space-x-2 mb-4 md:mb-0">
+                    <span className="text-sm font-bold text-gray-600">មើលលទ្ធផលរបស់:</span>
+                    <select 
+                        value={selectedTeacherDashboard}
+                        onChange={(e) => setSelectedTeacherDashboard(e.target.value)}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm font-bold text-blue-800 focus:ring-blue-500 cursor-pointer"
                     >
-                        <RefreshCw size={16} className={isLoadingData ? 'animate-spin' : ''} />
-                        <span>Refresh Data</span>
-                    </button>
-                    <button 
-                        onClick={handleClearData}
-                        className="text-gray-400 text-sm hover:bg-gray-50 px-3 py-2 rounded flex items-center space-x-1"
-                    >
-                        <Trash2 size={16} />
-                        <span>Clear Local</span>
-                    </button>
-                </div>
-             </div>
+                        {TEACHERS_LIST.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                        <button 
+                            onClick={loadData}
+                            className="text-blue-600 text-sm hover:bg-blue-50 px-3 py-2 rounded flex items-center space-x-1"
+                        >
+                            <RefreshCw size={16} className={isLoadingData ? 'animate-spin' : ''} />
+                            <span>Refresh Data</span>
+                        </button>
+                        <button 
+                            onClick={handleClearData}
+                            className="text-gray-400 text-sm hover:bg-gray-50 px-3 py-2 rounded flex items-center space-x-1"
+                        >
+                            <Trash2 size={16} />
+                            <span>Clear Local</span>
+                        </button>
+                    </div>
+                 </div>
+             )}
             
              {isLoadingData ? (
                  <div className="flex justify-center items-center py-20">
@@ -212,6 +310,7 @@ function App() {
                     submissions={currentTeacherSubmissions}
                     categories={EVALUATION_DATA}
                     teacherInfo={dashboardTeacherInfo}
+                    isPublicView={isPublicView}
                  />
              )}
           </div>
