@@ -166,7 +166,7 @@ function App() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('form')}>
               <img 
-                src="/logo.ico" 
+                src="public/logo.ico" 
                 alt="NUCK Logo" 
                 className="h-12 w-auto sm:h-14 bg-white rounded-full p-0.5 object-contain"
               />
@@ -229,7 +229,7 @@ function App() {
       {/* Public View Header */}
       {isPublicView && (
          <div className="bg-teal-800 text-white p-4 text-center print:hidden">
-             <img src="/logo.ico" alt="Logo" className="h-20 w-auto mx-auto mb-2 object-contain" />
+             <img src="public/logo.ico" alt="Logo" className="h-20 w-auto mx-auto mb-2 object-contain" />
              <h1 className="font-moul text-lg sm:text-xl">លទ្ធផលនៃការវាយតម្លៃសាស្ត្រាចារ្យ (Public Result)</h1>
              <p className="text-sm opacity-80 font-sans">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</p>
          </div>
@@ -241,7 +241,7 @@ function App() {
           <div className="animate-fade-in">
              <div className="text-center mb-8">
                 <img 
-                    src="/logo.ico" 
+                    src="public/logo.ico" 
                     alt="University Logo" 
                     className="h-24 w-auto mx-auto mb-4 object-contain"
                 />
