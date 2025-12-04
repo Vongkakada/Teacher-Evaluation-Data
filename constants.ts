@@ -4,17 +4,18 @@ import { Category, RatingValue } from './types';
 export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweLMkgaCjMayMq0hLTYz9O_qFjI_WlVBRUWjPb2dLoD91qJQ2o_s19kW1gjhvLohu8HQ/exec";
 
 export const TEACHER_INFO_DEFAULT = {
-  name: 'ជឹម វុឌថា', // Default to first teacher
-  subject: 'Academic Writing II',
-  date: '22.11.2025',
-  room: 'M03',
+  name: 'ជិន ពិសិដ្ឋ', // Default to first teacher
+  subject: 'សេដ្ឋកិច្ច',
+  date: '12/04/2025',
+  room: 'A102',
   shift: 'ព្រឹក',
-  generation: '១៨',
-  year: '២',
+  generation: '26',
+  year: '1',
   semester: '១',
 };
 
 export const TEACHERS_LIST = [
+  'ជិន ពិសិដ្ឋ',
   'ជឹម វុឌថា',
   'កន ជឿន',
   'នាង វឿន',
