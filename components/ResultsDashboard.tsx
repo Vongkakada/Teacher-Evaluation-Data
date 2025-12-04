@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Category, Submission, TeacherInfo } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Printer, Download, Share2, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar } from 'lucide-react';
 import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
+import { TEACHERS_LIST } from '../constants';
 
 interface ResultsDashboardProps {
   submissions: Submission[];
@@ -14,11 +15,36 @@ interface ResultsDashboardProps {
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   submissions,
   categories,
-  teacherInfo,
+  teacherInfo, // Initial teacher info from App.tsx (mostly empty or default in admin view)
   isPublicView = false,
 }) => {
-  const totalStudents = submissions.length;
   
+  // --- Filtering State ---
+  const [filterTeacher, setFilterTeacher] = useState(isPublicView ? teacherInfo.name : TEACHERS_LIST[0]);
+  const [filterTerm, setFilterTerm] = useState('All');
+  const [filterMonth, setFilterMonth] = useState('All');
+  const [filterYear, setFilterYear] = useState('All');
+
+  // Derive unique Terms and Dates from actual data for dropdowns
+  const availableTerms = Array.from(new Set(submissions.map(s => s.term).filter(Boolean)));
+  const availableYears = Array.from(new Set(submissions.map(s => new Date(s.timestamp).getFullYear().toString())));
+  
+  // Apply filters
+  const filteredSubmissions = submissions.filter(s => {
+      const date = new Date(s.timestamp);
+      const matchesTeacher = s.teacherName === filterTeacher;
+      const matchesTerm = filterTerm === 'All' || s.term === filterTerm;
+      const matchesYear = filterYear === 'All' || date.getFullYear().toString() === filterYear;
+      const matchesMonth = filterMonth === 'All' || (date.getMonth() + 1).toString() === filterMonth;
+
+      return matchesTeacher && matchesTerm && matchesYear && matchesMonth;
+  });
+
+  const totalStudents = filteredSubmissions.length;
+  const currentTeacherName = filterTeacher;
+  const currentSubject = filteredSubmissions.length > 0 ? filteredSubmissions[0].subject || teacherInfo.subject : teacherInfo.subject;
+  const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
+
   // --- Share Link Logic ---
   const [isShareActive, setIsShareActive] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
@@ -26,19 +52,21 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
   useEffect(() => {
      // Load share status when teacher changes
-     setIsShareActive(getPublicLinkStatus(teacherInfo.name));
-  }, [teacherInfo.name]);
+     setIsShareActive(getPublicLinkStatus(filterTeacher));
+  }, [filterTeacher]);
 
   const handleToggleShare = () => {
       const newState = !isShareActive;
       setIsShareActive(newState);
-      setPublicLinkStatus(teacherInfo.name, newState);
+      setPublicLinkStatus(filterTeacher, newState);
   };
 
   const getPublicLink = () => {
       const params = new URLSearchParams();
       params.set('mode', 'public_results');
-      params.set('teacher', teacherInfo.name);
+      params.set('teacher', filterTeacher);
+      // Note: Public link currently defaults to showing all data for that teacher.
+      // Specific term links would require more complex share logic not implemented here.
       return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   };
 
@@ -49,20 +77,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   };
   // ------------------------
 
-  if (totalStudents === 0 && !isPublicView) {
-    return (
-      <div className="flex items-center justify-center h-64 bg-white rounded-lg border border-dashed border-gray-300">
-        <p className="text-gray-500">មិនទាន់មានទិន្នន័យវាយតម្លៃនៅឡើយ។ (No submissions yet)</p>
-      </div>
-    );
-  } else if (totalStudents === 0 && isPublicView) {
-      return (
-        <div className="flex items-center justify-center h-64 bg-white rounded-lg border border-dashed border-gray-300">
-             <p className="text-gray-500">មិនទាន់មានទិន្នន័យវាយតម្លៃសម្រាប់បង្ហាញទេ។</p>
-        </div>
-      );
-  }
-
   // --- CSV Export Logic ---
   const handleDownloadCSV = () => {
     // 1. Prepare Headers
@@ -70,6 +84,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       'Submission ID',
       'Date Submitted',
       'Teacher Name',
+      'Term',
       'Subject',
       'Room',
       'Shift',
@@ -83,14 +98,15 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     headers.push('Comment');
 
     // 2. Prepare Rows
-    const rows = submissions.map(sub => {
+    const rows = filteredSubmissions.map(sub => {
       const rowData = [
         sub.id,
         new Date(sub.timestamp).toLocaleString('km-KH'),
         sub.teacherName,
-        teacherInfo.subject, // Assuming filtered view context
-        teacherInfo.room,
-        teacherInfo.shift,
+        sub.term || '-',
+        sub.subject || '-',
+        sub.room || '-',
+        sub.shift || '-',
       ];
 
       // Add ratings in order
@@ -108,14 +124,13 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     });
 
     // 3. Combine and Download
-    // Add BOM (\ufeff) for Excel to recognize UTF-8 (Khmer characters)
     const csvContent = "\ufeff" + [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Evaluation_${teacherInfo.name}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `Evaluation_${filterTeacher}_${currentTerm}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -131,7 +146,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       let sum = 0;
 
-      submissions.forEach(sub => {
+      filteredSubmissions.forEach(sub => {
         const rating = sub.ratings[q.id] || 0;
         if (rating > 0) {
           counts[rating as 1|2|3|4|5]++;
@@ -186,15 +201,90 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   return (
-    <div className="space-y-8 pb-20 print:p-0 print:space-y-4">
+    <div className="space-y-6 pb-20 print:p-0 print:space-y-4">
       
+      {/* --- Advanced Filter Bar (Admin Only) --- */}
+      {!isPublicView && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden">
+            <h3 className="text-gray-700 font-bold mb-3 flex items-center gap-2">
+                <Filter size={18} className="text-teal-600" />
+                ស្វែងរករបាយការណ៍ (Filter Report)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* Teacher Filter */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">ឈ្មោះគ្រូ (Teacher)</label>
+                    <select 
+                        value={filterTeacher}
+                        onChange={(e) => setFilterTeacher(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-gray-800"
+                    >
+                        {TEACHERS_LIST.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Term Filter */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">វគ្គសិក្សា (Term)</label>
+                    <select 
+                        value={filterTerm}
+                        onChange={(e) => setFilterTerm(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+                    >
+                        <option value="All">បង្ហាញទាំងអស់ (All Terms)</option>
+                        {availableTerms.map(t => (
+                            <option key={t} value={t}>{t}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Year Filter */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">ឆ្នាំ (Year)</label>
+                    <select 
+                        value={filterYear}
+                        onChange={(e) => setFilterYear(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+                    >
+                        <option value="All">គ្រប់ឆ្នាំ (All Years)</option>
+                        {availableYears.map(y => (
+                            <option key={y} value={y}>{y}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Month Filter */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">ខែ (Month)</label>
+                    <select 
+                        value={filterMonth}
+                        onChange={(e) => setFilterMonth(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+                    >
+                        <option value="All">គ្រប់ខែ (All Months)</option>
+                        {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                            <option key={m} value={m.toString()}>ខែ {m}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            {filteredSubmissions.length === 0 && (
+                <div className="mt-3 text-sm text-orange-500 bg-orange-50 p-2 rounded">
+                    មិនមានទិន្នន័យសម្រាប់លក្ខខណ្ឌដែលបានជ្រើសរើសទេ។ (No data found for these filters)
+                </div>
+            )}
+        </div>
+      )}
+
       {/* --- Share Control Panel (Admin Only) --- */}
       {!isPublicView && (
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden transition-all">
               <div className="flex justify-between items-center">
                   <h3 className="text-gray-700 font-bold flex items-center gap-2">
                       <Share2 className="text-blue-600" size={20} />
-                      ចែករំលែកលទ្ធផល (Public Share)
+                      ចែករំលែកលទ្ធផលគ្រូនេះ (Public Share)
                   </h3>
                   <button 
                     onClick={() => setShowSharePanel(!showSharePanel)}
@@ -235,18 +325,16 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                               Copy Link
                           </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                          * នៅពេលបិទ (Disable) អ្នកផ្សេងដែលមាន Link នេះនឹងមិនអាចចូលមើលលទ្ធផលបានទេ។
-                      </p>
                   </div>
               )}
           </div>
       )}
 
-      {/* Header Summary for Print/Admin */}
+      {/* Main Report Content */}
+      {filteredSubmissions.length > 0 ? (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 print:shadow-none print:border-none">
         
-        {/* Print Header with Logo and New Name */}
+        {/* Print Header */}
         <div className="hidden print:flex flex-col items-center mb-8 border-b border-gray-300 pb-4">
              <img src="/LOGO.png" alt="NUCK Logo" className="h-32 w-auto mb-2 object-contain" />
              <h1 className="text-xl font-moul text-black text-center">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</h1>
@@ -256,18 +344,26 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 print:hidden gap-4">
-            <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
+            <div>
+                <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
+                {/* Show active filters summary */}
+                <p className="text-sm text-gray-500 mt-1">
+                    គ្រូ: <span className="font-bold">{filterTeacher}</span> | 
+                    Term: <span className="font-bold">{filterTerm}</span> | 
+                    Date: <span className="font-bold">{filterMonth === 'All' ? '' : `Month ${filterMonth}, `}{filterYear === 'All' ? 'All Time' : filterYear}</span>
+                </p>
+            </div>
             
-            {/* Action Buttons: Hidden in Public View */}
-            {!isPublicView && (
             <div className="flex space-x-2">
-                <button 
-                    onClick={handleDownloadCSV} 
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white transition shadow-sm"
-                >
-                    <Download size={18} />
-                    <span>Download CSV</span>
-                </button>
+                {!isPublicView && (
+                    <button 
+                        onClick={handleDownloadCSV} 
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white transition shadow-sm"
+                    >
+                        <Download size={18} />
+                        <span>Download CSV</span>
+                    </button>
+                )}
                 <button 
                     onClick={() => window.print()} 
                     className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition"
@@ -276,20 +372,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                     <span>Print Report</span>
                 </button>
             </div>
-            )}
-
-            {/* Print Button for Public View */}
-            {isPublicView && (
-                <button 
-                    onClick={() => window.print()} 
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 transition"
-                >
-                    <Printer size={18} />
-                    <span>Print Report</span>
-                </button>
-            )}
         </div>
 
+        {/* Info Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
@@ -304,8 +389,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
              <p className={`text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
            </div>
            <div>
-             <p className="text-gray-500 text-xs uppercase font-bold">ស្ថានភាព (Status)</p>
-             <p className="text-2xl font-bold text-gray-900">{finalGrade !== 'E' ? 'ជាប់ (Pass)' : 'ធ្លាក់ (Fail)'}</p>
+             <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
+             <p className="text-lg font-bold text-gray-900">{currentTerm}</p>
            </div>
         </div>
 
@@ -378,8 +463,15 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             <span className="mr-4 text-gray-500">E=49-0</span>
         </div>
       </div>
+      ) : (
+          // Empty State
+          <div className="flex items-center justify-center h-64 bg-white rounded-lg border border-dashed border-gray-300">
+             <p className="text-gray-500">សូមជ្រើសរើសឈ្មោះគ្រូ និងលក្ខខណ្ឌស្វែងរកខាងលើដើម្បីបង្ហាញទិន្នន័យ។</p>
+          </div>
+      )}
 
       {/* Charts Section (Hidden on Print) */}
+      {filteredSubmissions.length > 0 && (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:hidden">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
              <h3 className="font-moul text-gray-700 mb-4 text-lg">ពិន្ទុតាមផ្នែក (Score by Category)</h3>
@@ -402,17 +494,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
              <h3 className="font-moul text-gray-700 mb-4 text-lg">សំណូមពររបស់និស្សិត (Comments)</h3>
              <div className="h-64 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                {submissions.filter(s => s.comment).map((s, i) => (
+                {filteredSubmissions.filter(s => s.comment).map((s, i) => (
                     <div key={s.id} className="p-3 bg-gray-50 rounded border border-gray-100 text-sm italic text-gray-600">
                         "{s.comment}"
                     </div>
                 ))}
-                {submissions.filter(s => s.comment).length === 0 && (
+                {filteredSubmissions.filter(s => s.comment).length === 0 && (
                     <p className="text-gray-400 text-center mt-10">មិនមានមតិយោបល់ (No comments)</p>
                 )}
              </div>
           </div>
       </div>
+      )}
     </div>
   );
 };

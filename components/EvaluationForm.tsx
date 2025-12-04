@@ -49,6 +49,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
       ratings,
       comment,
       teacherName: teacherInfo.name,
+      term: teacherInfo.term, // Include term
     };
 
     await onSubmit(submission);
@@ -88,6 +89,11 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
           <div className="flex flex-col">
             <span className="font-semibold">មុខវិជ្ជា:</span> 
             <span className={isReadOnlyMode ? "font-bold" : ""}>{teacherInfo.subject}</span>
+          </div>
+           {/* Display Term */}
+          <div className="flex flex-col">
+            <span className="font-semibold">វគ្គសិក្សា (Term):</span> 
+            <span className="font-medium text-blue-700">{teacherInfo.term || 'N/A'}</span>
           </div>
           <div className="flex flex-col">
             <span className="font-semibold">កាលបរិច្ឆេទ:</span> 

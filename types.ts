@@ -24,6 +24,11 @@ export interface Submission {
   ratings: Record<string, number>; // questionId -> RatingValue
   comment: string;
   teacherName: string;
+  // New fields for filtering
+  term?: string;
+  subject?: string;
+  room?: string;
+  shift?: string;
 }
 
 export interface TeacherInfo {
@@ -32,6 +37,7 @@ export interface TeacherInfo {
   date: string;
   room: string;
   shift: string;
+  term: string; // Added Term
   generation: string;
   year: string;
   semester: string;

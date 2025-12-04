@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TEACHERS_LIST, TEACHER_INFO_DEFAULT } from '../constants';
 import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock } from 'lucide-react';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen } from 'lucide-react';
 
 export const LinkGenerator: React.FC = () => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
@@ -19,8 +19,14 @@ export const LinkGenerator: React.FC = () => {
     params.set('teacher', info.name);
     params.set('subject', info.subject);
     params.set('room', info.room);
-    params.set('date', info.date);
+    
+    // Convert YYYY-MM-DD to DD/MM/YYYY for display/storage consistency
+    const dateObj = new Date(info.date);
+    const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+    params.set('date', formattedDate);
+    
     params.set('shift', info.shift);
+    params.set('term', info.term); // Add Term
 
     // Calculate Expiration
     let expiryTimestamp = 0;
@@ -74,7 +80,7 @@ export const LinkGenerator: React.FC = () => {
   const isLongUrl = generatedLink.includes('teacher=');
 
   return (
-    <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+    <div className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-sm border border-gray-200">
       <h2 className="text-xl font-moul text-gray-800 mb-6 flex items-center gap-2">
         <QrCode className="text-blue-600" />
         បង្កើត QR Code សម្រាប់ថ្នាក់រៀន (Class Setup)
@@ -86,37 +92,74 @@ export const LinkGenerator: React.FC = () => {
           <select 
             value={info.name}
             onChange={(e) => setInfo({...info, name: e.target.value})}
-            className="w-full border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             {TEACHERS_LIST.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">មុខវិជ្ជា (Subject)</label>
-          <input 
-            type="text" 
-            value={info.subject}
-            onChange={(e) => setInfo({...info, subject: e.target.value})}
-            className="w-full border border-gray-300 rounded p-2"
-          />
+            <label className="block text-sm font-medium text-gray-700 mb-1">មុខវិជ្ជា (Subject)</label>
+            <input 
+                type="text" 
+                value={info.subject}
+                onChange={(e) => setInfo({...info, subject: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+        </div>
+        
+        {/* Term Input */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <BookOpen size={16} />
+                វគ្គសិក្សា (Term)
+            </label>
+            <div className="relative">
+                <input 
+                    type="text" 
+                    value={info.term}
+                    onChange={(e) => setInfo({...info, term: e.target.value})}
+                    placeholder="e.g. Term 1, Semester 2"
+                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <span className="absolute right-2 top-2 text-xs text-gray-400">សម្រាប់បំបែក Sheet</span>
+            </div>
+        </div>
+
+        {/* Date Calendar Input */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Calendar size={16} />
+                កាលបរិច្ឆេទ (Date)
+            </label>
+            <input 
+                type="date" 
+                value={info.date}
+                onChange={(e) => setInfo({...info, date: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-sans"
+            />
+        </div>
+
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">បន្ទប់ (Room)</label>
+            <input 
+                type="text" 
+                value={info.room}
+                onChange={(e) => setInfo({...info, room: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">កាលបរិច្ឆេទ (Date)</label>
-          <input 
-            type="text" 
-            value={info.date}
-            onChange={(e) => setInfo({...info, date: e.target.value})}
-            className="w-full border border-gray-300 rounded p-2"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">បន្ទប់ (Room)</label>
-          <input 
-            type="text" 
-            value={info.room}
-            onChange={(e) => setInfo({...info, room: e.target.value})}
-            className="w-full border border-gray-300 rounded p-2"
-          />
+             <label className="block text-sm font-medium text-gray-700 mb-1">វេន (Shift)</label>
+             <select
+                value={info.shift}
+                onChange={(e) => setInfo({...info, shift: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+             >
+                <option value="ព្រឹក">ព្រឹក (Morning)</option>
+                <option value="រសៀល">រសៀល (Afternoon)</option>
+                <option value="យប់">យប់ (Evening)</option>
+                <option value="ចុងសប្តាហ៍">ចុងសប្តាហ៍ (Weekend)</option>
+             </select>
         </div>
       </div>
 
@@ -131,7 +174,7 @@ export const LinkGenerator: React.FC = () => {
                 <select 
                     value={expiryType}
                     onChange={(e) => setExpiryType(e.target.value as any)}
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none"
                 >
                     <option value="24h">មានសុពលភាព ១ថ្ងៃ (24 Hours)</option>
                     <option value="48h">មានសុពលភាព ២ថ្ងៃ (48 Hours)</option>
@@ -145,7 +188,7 @@ export const LinkGenerator: React.FC = () => {
                         type="datetime-local" 
                         value={customDate}
                         onChange={(e) => setCustomDate(e.target.value)}
-                        className="w-full border border-gray-300 rounded p-2 text-sm"
+                        className="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none"
                     />
                 </div>
             )}

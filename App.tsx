@@ -5,7 +5,7 @@ import { LinkGenerator } from './components/LinkGenerator';
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
 import { Submission, TeacherInfo } from './types';
 import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus } from './services/storage';
-import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState<'form' | 'dashboard' | 'generator' | 'access_denied' | 'expired'>('form');
@@ -18,6 +18,9 @@ function App() {
   
   // New State: Is the user viewing a Public Result Link?
   const [isPublicView, setIsPublicView] = useState(false);
+
+  // State to hold the expiry timestamp for display
+  const [expiredTimestamp, setExpiredTimestamp] = useState<number | null>(null);
 
   // Function to load data from Google Sheets
   const loadData = async () => {
@@ -44,8 +47,9 @@ function App() {
                 ...TEACHER_INFO_DEFAULT,
                 name: teacherParam,
                 subject: params.get('subject') || TEACHER_INFO_DEFAULT.subject,
+                term: params.get('term') || TEACHER_INFO_DEFAULT.term,
             });
-            setSelectedTeacherDashboard(teacherParam); // Set filter for dashboard
+            // We only set the teacher name initially for the filter, user can change later if needed in dashboard
             setIsPublicView(true);
             setView('dashboard');
             loadData(); // Load data immediately for public view
@@ -57,23 +61,28 @@ function App() {
     
     // Case 2: Student Scanning QR Code (Form View)
     if (teacherParam) {
+        // Parse basic info first (useful even if expired, to show WHAT expired)
+        const infoFromUrl = {
+            ...TEACHER_INFO_DEFAULT,
+            name: teacherParam,
+            subject: params.get('subject') || TEACHER_INFO_DEFAULT.subject,
+            room: params.get('room') || TEACHER_INFO_DEFAULT.room,
+            date: params.get('date') || TEACHER_INFO_DEFAULT.date,
+            shift: params.get('shift') || TEACHER_INFO_DEFAULT.shift,
+            term: params.get('term') || TEACHER_INFO_DEFAULT.term,
+        };
+        setTeacherInfo(infoFromUrl);
+
         // Check Expiration
         if (expiryParam) {
             const expiryTime = parseInt(expiryParam, 10);
             if (!isNaN(expiryTime) && Date.now() > expiryTime) {
+                setExpiredTimestamp(expiryTime);
                 setView('expired');
                 return;
             }
         }
 
-      setTeacherInfo({
-        ...TEACHER_INFO_DEFAULT,
-        name: teacherParam,
-        subject: params.get('subject') || TEACHER_INFO_DEFAULT.subject,
-        room: params.get('room') || TEACHER_INFO_DEFAULT.room,
-        date: params.get('date') || TEACHER_INFO_DEFAULT.date,
-        shift: params.get('shift') || TEACHER_INFO_DEFAULT.shift,
-      });
       setIsReadOnlyMode(true);
       setView('form');
     }
@@ -90,7 +99,8 @@ function App() {
       ...submission,
       subject: teacherInfo.subject,
       room: teacherInfo.room,
-      shift: teacherInfo.shift
+      shift: teacherInfo.shift,
+      term: teacherInfo.term
     };
 
     const success = await saveSubmission(fullSubmission);
@@ -107,30 +117,24 @@ function App() {
         setSubmissions([]); // This clears local view state
     }
   }
-
-  // Filter logic for Dashboard
-  const [selectedTeacherDashboard, setSelectedTeacherDashboard] = useState(TEACHERS_LIST[0]);
-  const currentTeacherSubmissions = submissions.filter(
-    (s) => s.teacherName === selectedTeacherDashboard
-  );
   
-  // Logic to show dashboard info based on selected teacher (derived from submissions or default)
+  // Dashboard default info
   const dashboardTeacherInfo = {
       ...TEACHER_INFO_DEFAULT,
-      name: selectedTeacherDashboard
+      name: '' // Will be handled by the dashboard's internal filter state
   };
 
   // Render Access Denied Page
   if (view === 'access_denied') {
       return (
           <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-              <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
-                  <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Lock className="w-8 h-8 text-red-600" />
+              <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full border-t-4 border-red-600">
+                  <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Lock className="w-10 h-10 text-red-600" />
                   </div>
-                  <h1 className="text-xl font-moul text-red-700 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
-                  <p className="text-gray-600 mb-6">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។</p>
-                  <a href="/" className="inline-block bg-teal-700 text-white px-6 py-2 rounded hover:bg-teal-800 transition">
+                  <h1 className="text-xl font-moul text-gray-800 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
+                  <p className="text-gray-600 mb-8">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រព័ន្ធ។</p>
+                  <a href="/" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900 transition">
                       ត្រឡប់ទៅទំព័រដើម
                   </a>
               </div>
@@ -140,18 +144,48 @@ function App() {
 
   // Render Expired Page
   if (view === 'expired') {
+    const expiredDateStr = expiredTimestamp 
+        ? new Date(expiredTimestamp).toLocaleString('km-KH', { dateStyle: 'long', timeStyle: 'short' }) 
+        : 'N/A';
+
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-            <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full">
-                <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="w-8 h-8 text-orange-600" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+            <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-lg w-full border border-gray-200 relative overflow-hidden">
+                {/* Decorative background circle */}
+                <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
+                
+                <div className="bg-red-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                    <CalendarX className="w-12 h-12 text-red-500" />
                 </div>
-                <h1 className="text-xl font-moul text-orange-700 mb-2">Link ផុតកំណត់ (Expired)</h1>
-                <p className="text-gray-600 mb-6">សុំទោស Link សម្រាប់វាយតម្លៃមួយនេះបានផុតកំណត់ហើយ។ សូមទាក់ទងសាស្ត្រាចារ្យ ឬការិយាល័យជំនាញ។</p>
-                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded border border-gray-200">
-                    <AlertCircle className="inline w-4 h-4 mr-1 mb-0.5" />
-                    ការវាយតម្លៃត្រូវបានបិទបញ្ចប់
+                
+                <h1 className="text-2xl font-moul text-red-600 mb-2">Link ផុតកំណត់</h1>
+                <h2 className="text-lg font-bold text-gray-700 mb-6 uppercase tracking-wide">Link Expired</h2>
+                
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-left mb-6">
+                    <p className="text-sm text-gray-500 mb-1">ការវាយតម្លៃសម្រាប់ (Evaluation For):</p>
+                    <p className="font-bold text-gray-800 text-lg mb-2">{teacherInfo.name}</p>
+                    <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-2 mt-2">
+                        <span>មុខវិជ្ជា: {teacherInfo.subject}</span>
+                        <span>{teacherInfo.term}</span>
+                    </div>
                 </div>
+
+                <div className="space-y-4">
+                    <p className="text-gray-600">
+                        សុំទោស Link សម្រាប់វាយតម្លៃមួយនេះបានផុតកំណត់តាំងពី៖
+                        <br/>
+                        <span className="font-bold text-red-500 block mt-1 text-lg">{expiredDateStr}</span>
+                    </p>
+                    
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-red-50 p-3 rounded text-center">
+                        <Ban className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <span>មិនអាចធ្វើការវាយតម្លៃបានទៀតទេ។</span>
+                    </div>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-8">
+                    ប្រសិនបើអ្នកគិតថានេះជាកំហុស សូមទាក់ទងការិយាល័យសិក្សា។
+                </p>
             </div>
         </div>
     );
@@ -277,20 +311,7 @@ function App() {
           <div className="animate-fade-in">
              {/* Admin Controls (Hidden in Public View) */}
              {!isPublicView && (
-                 <div className="mb-6 flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden">
-                    <div className="flex items-center space-x-2 mb-4 md:mb-0">
-                    <span className="text-sm font-bold text-gray-600">មើលលទ្ធផលរបស់:</span>
-                    <select 
-                        value={selectedTeacherDashboard}
-                        onChange={(e) => setSelectedTeacherDashboard(e.target.value)}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm font-bold text-blue-800 focus:ring-blue-500 cursor-pointer"
-                    >
-                        {TEACHERS_LIST.map(t => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
-                    </div>
-                    
+                 <div className="mb-6 flex justify-end items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200 print:hidden">
                     <div className="flex space-x-2">
                         <button 
                             onClick={loadData}
@@ -317,7 +338,7 @@ function App() {
                  </div>
              ) : (
                  <ResultsDashboard 
-                    submissions={currentTeacherSubmissions}
+                    submissions={submissions}
                     categories={EVALUATION_DATA}
                     teacherInfo={dashboardTeacherInfo}
                     isPublicView={isPublicView}

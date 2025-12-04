@@ -6,6 +6,7 @@ interface SheetSubmission extends Submission {
   subject?: string;
   room?: string;
   shift?: string;
+  term?: string; // Ensure Term is sent
 }
 
 export const saveSubmission = async (submission: SheetSubmission): Promise<boolean> => {

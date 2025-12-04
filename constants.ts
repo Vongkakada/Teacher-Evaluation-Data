@@ -6,9 +6,10 @@ export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfy
 export const TEACHER_INFO_DEFAULT = {
   name: 'ជិន ពិសិដ្ឋ', // Default to first teacher
   subject: 'សេដ្ឋកិច្ច',
-  date: '12/04/2025',
+  date: new Date().toISOString().split('T')[0], // Default to today YYYY-MM-DD
   room: 'A102',
   shift: 'ព្រឹក',
+  term: 'Term 1', // Default Term
   generation: '26',
   year: '1',
   semester: '១',
