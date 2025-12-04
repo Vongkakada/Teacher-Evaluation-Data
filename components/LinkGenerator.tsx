@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TEACHERS_LIST, TEACHER_INFO_DEFAULT } from '../constants';
+import { TEACHERS_LIST, TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
 import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen } from 'lucide-react';
 
@@ -107,21 +107,22 @@ export const LinkGenerator: React.FC = () => {
             />
         </div>
         
-        {/* Term Input */}
+        {/* Term Input as Dropdown */}
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <BookOpen size={16} />
                 វគ្គសិក្សា (Term)
             </label>
             <div className="relative">
-                <input 
-                    type="text" 
+                <select
                     value={info.term}
                     onChange={(e) => setInfo({...info, term: e.target.value})}
-                    placeholder="e.g. Term 1, Semester 2"
                     className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-                <span className="absolute right-2 top-2 text-xs text-gray-400">សម្រាប់បំបែក Sheet</span>
+                >
+                    {TERMS_LIST.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
             </div>
         </div>
 

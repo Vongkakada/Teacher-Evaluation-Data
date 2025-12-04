@@ -6,7 +6,8 @@ interface SheetSubmission extends Submission {
   subject?: string;
   room?: string;
   shift?: string;
-  term?: string; // Ensure Term is sent
+  term?: string;
+  sheetName?: string; // Explicitly send target sheet name
 }
 
 export const saveSubmission = async (submission: SheetSubmission): Promise<boolean> => {
@@ -16,14 +17,24 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
     return true;
   }
 
+  // Calculate dynamic Sheet Name: "Term X (Mon-Year)"
+  const date = new Date(submission.timestamp);
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthYear = `${monthNames[date.getMonth()]}-${date.getFullYear()}`;
+  // Default to 'General' if term is missing, though term is usually set
+  const termName = submission.term || 'General';
+  const targetSheetName = `${termName} (${monthYear})`;
+
+  const finalPayload: SheetSubmission = {
+    ...submission,
+    sheetName: targetSheetName
+  };
+
   try {
     // We use "Content-Type": "text/plain;charset=utf-8" to force a "Simple Request".
-    // This prevents the browser from sending an OPTIONS preflight request, which Google Apps Script doesn't handle.
-    // 'no-cors' mode is cleaner for logging but means we can't read the response JSON. 
-    // Since we trust the GAS to return 200 on success, this is acceptable for submission.
     await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify(submission),
+      body: JSON.stringify(finalPayload),
       mode: 'no-cors', 
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
@@ -44,6 +55,9 @@ export const getSubmissions = async (): Promise<Submission[]> => {
   }
 
   try {
+    // Note: getSubmissions usually fetches ALL data from the main script.
+    // If you want to fetch only from specific sheets, the Google Apps Script needs to support it.
+    // For now, we assume the script returns accumulated data from all sheets or a main DB sheet.
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL);
     if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -57,7 +71,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
 };
 
 export const clearSubmissions = () => {
-   // Only clear local storage, we can't clear Google Sheets via this API easily without password protection logic
+   // Only clear local storage
    localStorage.removeItem('teacher_eval_submissions');
 };
 
@@ -74,7 +88,6 @@ const saveToLocal = (submission: Submission) => {
 };
 
 // --- Public Link Status Management ---
-// We simulate a database of "active public links" using localStorage
 export const setPublicLinkStatus = (teacherName: string, isActive: boolean) => {
     const key = `public_link_status_${teacherName}`;
     localStorage.setItem(key, JSON.stringify(isActive));

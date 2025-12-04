@@ -30,6 +30,14 @@ export const TEACHERS_LIST = [
   'សោម សាវឿន',
 ];
 
+export const TERMS_LIST = [
+  'Term 1',
+  'Term 2',
+  'Term 3',
+  'Semester 1',
+  'Semester 2',
+];
+
 export const RATING_LABELS: Record<number, string> = {
   [RatingValue.StronglyAgree]: 'យល់ស្របទាំងស្រុង',
   [RatingValue.Agree]: 'យល់ស្រប',
