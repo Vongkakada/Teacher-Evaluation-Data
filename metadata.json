@@ -1,0 +1,5 @@
+{
+  "name": "Teacher Evaluation System (Khmer)",
+  "description": "A digital teacher evaluation platform allowing students to rate performance based on QA criteria, with automatic GPA and score calculation.",
+  "requestFramePermissions": []
+}
