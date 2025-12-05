@@ -66,8 +66,52 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     if (!response.ok) {
         throw new Error('Network response was not ok');
     }
-    const data = await response.json();
-    return data;
+    
+    // Raw data from Google Sheet usually comes with keys exactly as the Header Row
+    // e.g. { "ID": "...", "Date": "...", "Ratings (JSON)": "...", "Year Level": "..." }
+    const rawData = await response.json();
+    console.log("Raw Data from Sheet:", rawData);
+
+    // Map the raw sheet data to our App's Submission Interface
+    const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
+        
+        // 1. Parse Ratings: Handle "Ratings (JSON)" column which is a string
+        let parsedRatings: Record<string, number> = {};
+        const ratingString = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
+        
+        if (typeof ratingString === 'string' && ratingString.trim() !== '') {
+            try {
+                parsedRatings = JSON.parse(ratingString);
+            } catch (e) {
+                console.warn("Failed to parse ratings JSON for row:", row['ID'], e);
+            }
+        } else if (typeof ratingString === 'object') {
+            parsedRatings = ratingString;
+        }
+
+        // 2. Parse Timestamp
+        const dateVal = row['Date'] || row['timestamp'];
+        const timestamp = dateVal ? new Date(dateVal).getTime() : Date.now();
+
+        // 3. Construct the Submission Object using Keys from Sheet
+        return {
+            id: row['ID'] || row['id'] || 'unknown',
+            timestamp: timestamp,
+            teacherName: row['Teacher'] || row['teacherName'] || 'Unknown',
+            subject: row['Subject'] || row['subject'],
+            term: row['Term'] || row['term'],
+            major: row['Major'] || row['major'],
+            yearLevel: row['Year Level'] || row['yearLevel'] || row['year'],
+            room: row['Room'] || row['room'],
+            shift: row['Shift'] || row['shift'],
+            comment: row['Comment'] || row['comment'] || '',
+            ratings: parsedRatings
+        };
+    }) : [];
+
+    console.log("Formatted Data for App:", formattedData);
+    return formattedData;
+
   } catch (error) {
     console.error('Error fetching from Google Sheets:', error);
     return [];
