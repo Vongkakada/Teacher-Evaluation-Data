@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TEACHERS_LIST, TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen } from 'lucide-react';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, Timer } from 'lucide-react';
 
 export const LinkGenerator: React.FC = () => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
@@ -12,6 +12,10 @@ export const LinkGenerator: React.FC = () => {
   // Expiry State
   const [expiryType, setExpiryType] = useState<'unlimited' | '24h' | '48h' | 'custom'>('24h');
   const [customDate, setCustomDate] = useState('');
+  
+  // Countdown State
+  const [generatedExpiry, setGeneratedExpiry] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   const generateLink = () => {
     // Create URL search params
@@ -42,12 +46,46 @@ export const LinkGenerator: React.FC = () => {
 
     if (expiryTimestamp > 0) {
         params.set('exp', expiryTimestamp.toString());
+        setGeneratedExpiry(expiryTimestamp);
+    } else {
+        setGeneratedExpiry(null);
     }
 
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     setGeneratedLink(url);
     setCopied(false);
   };
+
+  // Countdown Logic
+  useEffect(() => {
+    if (!generatedExpiry) {
+        setTimeLeft('');
+        return;
+    }
+
+    const interval = setInterval(() => {
+        const now = Date.now();
+        const distance = generatedExpiry - now;
+
+        if (distance < 0) {
+            setTimeLeft('EXPIRED');
+            clearInterval(interval);
+        } else {
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            let timeString = '';
+            if (days > 0) timeString += `${days}ថ្ងៃ `;
+            timeString += `${hours}ម៉ោង ${minutes}នាទី ${seconds}វិនាទី`;
+            setTimeLeft(timeString);
+        }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [generatedExpiry]);
+
 
   const shortenLink = async () => {
     if (!generatedLink) return;
@@ -207,7 +245,19 @@ export const LinkGenerator: React.FC = () => {
       </button>
 
       {generatedLink && (
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center animate-fade-in">
+        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center animate-fade-in relative">
+          
+          {/* Countdown Timer Display */}
+          <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-3 inline-block">
+             <div className="text-orange-800 text-xs font-bold uppercase mb-1 flex items-center justify-center gap-1">
+                 <Timer size={14} />
+                 Time Remaining
+             </div>
+             <div className="text-2xl font-mono font-bold text-orange-600">
+                 {generatedExpiry ? timeLeft : 'UNLIMITED'}
+             </div>
+          </div>
+
           <p className="text-sm text-gray-500 mb-4">ចែករំលែក Link នេះ ឬបង្ហាញ QR Code ដល់និស្សិត៖</p>
           
           <div className="flex justify-center mb-6">

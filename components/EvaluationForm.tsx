@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Category, Submission, TeacherInfo } from '../types';
+import { Category, Submission, TeacherInfo, RatingValue } from '../types';
+import { RATING_LABELS, RATING_LETTERS } from '../constants';
 import { StarRating } from './StarRating';
-import { Send, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle2, Loader2, Info, Star } from 'lucide-react';
 
 interface EvaluationFormProps {
   teacherInfo: TeacherInfo;
@@ -103,6 +104,29 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
             <span className="font-semibold">បន្ទប់:</span> 
             <span>{teacherInfo.room}</span>
           </div>
+        </div>
+      </div>
+
+      {/* RATING LEGEND / INSTRUCTIONS */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg mb-8 border border-blue-100 shadow-sm">
+        <h3 className="font-moul text-sm text-blue-800 mb-3 flex items-center gap-2">
+            <Info size={18} />
+            ការកំណត់ពិន្ទុ (Rating Scale):
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+             {[1, 2, 3, 4, 5].map(val => (
+                 <div key={val} className="flex items-center gap-2 bg-white p-2 rounded border border-blue-100 shadow-sm">
+                     <div className="flex flex-col items-center justify-center bg-blue-100 w-8 h-8 rounded text-blue-700 font-bold text-xs flex-shrink-0">
+                         {RATING_LETTERS[val]}
+                         <div className="flex">
+                            <Star size={8} className="fill-blue-700 text-blue-700" />
+                         </div>
+                     </div>
+                     <span className="text-xs font-medium text-gray-700">
+                         {RATING_LABELS[val]}
+                     </span>
+                 </div>
+             ))}
         </div>
       </div>
 
