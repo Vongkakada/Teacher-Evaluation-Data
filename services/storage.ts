@@ -166,7 +166,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
             subject: row['Subject'] || row['subject'],
             term: row['Term'] || row['term'],
             major: row['Major'] || row['major'],
-            yearLevel: row['Year Level'] || row['yearLevel'] || row['year'],
+            yearLevel: (row['Year Level'] || row['yearLevel'] || row['year'] || '').toString(),
             room: row['Room'] || row['room'],
             shift: row['Shift'] || row['shift'],
             comment: row['Comment'] || row['comment'] || '',

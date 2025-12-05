@@ -37,7 +37,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       const matchesTerm = filterTerm === 'All' || s.term === filterTerm;
       const matchesYear = filterYear === 'All' || date.getFullYear().toString() === filterYear;
       const matchesMonth = filterMonth === 'All' || (date.getMonth() + 1).toString() === filterMonth;
-      const matchesYearLevel = filterYearLevel === 'All' || s.yearLevel === filterYearLevel;
+      const matchesYearLevel = filterYearLevel === 'All' || (s.yearLevel && s.yearLevel.toString() === filterYearLevel);
 
       return matchesTeacher && matchesTerm && matchesYear && matchesMonth && matchesYearLevel;
   });
@@ -46,12 +46,15 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   
   // Calculate dynamic display values
   const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
-  
-  // Try to find the Major from the first submission in the filtered list
   const currentMajor = filteredSubmissions.length > 0 ? filteredSubmissions[0].major || '-' : '-';
-  
-  // Year Level Logic
   const currentYearLevel = filterYearLevel !== 'All' ? filterYearLevel : (filteredSubmissions.length > 0 ? filteredSubmissions[0].yearLevel || '-' : '-');
+
+  // Extract extra info from the first matching submission (assuming consistency within the filtered set)
+  const firstSub = filteredSubmissions[0];
+  const currentSubject = firstSub?.subject || '-';
+  const currentRoom = firstSub?.room || '-';
+  const currentShift = firstSub?.shift || '-';
+  const currentDate = firstSub ? new Date(firstSub.timestamp).toLocaleDateString('km-KH') : '-';
 
   // --- Share Link Logic ---
   const [isShareActive, setIsShareActive] = useState(false);
@@ -421,40 +424,55 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </div>
         </div>
 
-        {/* Info Grid - Updated with Major and Year Level */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
-           {/* Row 1 - Top Stats */}
-           <div>
-             <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
-             <p className="text-xl sm:text-2xl font-bold text-blue-900">{totalStudents}</p>
-           </div>
-           <div>
-             <p className="text-gray-500 text-xs uppercase font-bold">ពិន្ទុសរុប (Total Score)</p>
-             <p className="text-xl sm:text-2xl font-bold text-blue-900">{finalScore.toFixed(2)}</p>
-           </div>
-           <div>
-             <p className="text-gray-500 text-xs uppercase font-bold">និទ្ទេស (Grade)</p>
-             <p className={`text-xl sm:text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
-           </div>
+        {/* Info Grid - Redesigned Layout */}
+        <div className="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300 print:p-0">
            
-           {/* NEW GPA DISPLAY */}
-           <div className="bg-white p-2 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
-             <p className="text-gray-500 text-xs uppercase font-bold text-center md:text-left">GPA</p>
-             <p className="text-2xl sm:text-3xl font-bold text-purple-700 text-center md:text-left">{gpa.toFixed(2)}</p>
+           {/* Row 1 */}
+           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះគ្រូ (Teacher)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900 truncate" title={filterTeacher}>{filterTeacher}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
+                   <p className="text-sm sm:text-base font-bold text-blue-900">{totalStudents}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">វេន (Shift)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentShift}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ឆ្នាំទី (Year Level)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentYearLevel === 'All' ? 'All' : `Year ${currentYearLevel}`}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentTerm}</p>
+               </div>
+               <div className="bg-white p-1 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
+                   <p className="text-gray-500 text-xs uppercase font-bold text-center">GPA</p>
+                   <p className="text-lg sm:text-xl font-bold text-purple-700 text-center">{gpa.toFixed(2)}</p>
+               </div>
            </div>
-           
-           {/* Row 2 - Details */}
-           <div className="col-span-1 border-t border-gray-200 pt-3 md:border-none md:pt-0">
-             <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
-             <p className="text-lg font-bold text-gray-900">{currentTerm}</p>
-           </div>
-           <div className="col-span-1 border-t border-gray-200 pt-3 md:border-none md:pt-0">
-             <p className="text-gray-500 text-xs uppercase font-bold">ឆ្នាំទី (Year Level)</p>
-             <p className="text-lg font-bold text-gray-900">{currentYearLevel === 'All' ? 'All' : `Year ${currentYearLevel}`}</p>
-           </div>
-           <div className="col-span-2 border-t border-gray-200 pt-3 md:border-none md:pt-0">
-             <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
-             <p className="text-lg font-bold text-gray-900 break-words">{currentMajor}</p>
+
+           {/* Row 2 */}
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">មុខវិជ្ជា (Subject)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentSubject}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentMajor}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">បន្ទប់ (Room)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentRoom}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">កាលបរិច្ឆេទ (Date)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentDate}</p>
+               </div>
            </div>
         </div>
 
