@@ -74,6 +74,12 @@ export const getSubmissions = async (): Promise<Submission[]> => {
           redirect: 'follow'
       });
       
+      // Check content type before parsing
+      const contentType = response.headers.get("content-type");
+      if (contentType && !contentType.includes("application/json")) {
+         throw new Error(`Direct fetch returned non-JSON content type: ${contentType}`);
+      }
+      
       if (!response.ok) {
         throw new Error(`Direct fetch failed with status: ${response.status}`);
       }
@@ -82,15 +88,34 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     } catch (directError) {
       console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
       
-      // Attempt 2: Proxy Fetch (Using allorigins.win to bypass CORS)
-      // We encode the target URL and pass it to the proxy
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      // Attempt 2: Proxy Fetch (Using allorigins.win JSON Wrapper)
+      // We use /get instead of /raw to ensure we get a valid JSON response even if the target returns HTML (like a 404 or Login page)
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       
       const proxyResponse = await fetch(proxyUrl);
       if (!proxyResponse.ok) {
          throw new Error('Proxy fetch also failed');
       }
-      return await proxyResponse.json();
+      
+      const proxyData = await proxyResponse.json();
+      
+      // Check contents
+      if (proxyData.contents) {
+          try {
+              // The contents should be the JSON string from the Sheet
+              return JSON.parse(proxyData.contents);
+          } catch (e) {
+              // If parsing fails, check if it looks like HTML (often Google Login page)
+              if (proxyData.contents.trim().startsWith('<')) {
+                  console.error("Proxy returned HTML instead of JSON. This usually indicates the Google Script permissions are wrong.");
+                  console.error("Please ensure the Web App is deployed as 'Execute as: Me' and 'Who has access: Anyone'.");
+                  throw new Error("Deployment Error: Script returned HTML (Login Page?). Check 'Who has access' is set to 'Anyone'.");
+              }
+              throw e;
+          }
+      } else {
+          throw new Error("Proxy returned empty content.");
+      }
     }
   };
 
@@ -140,6 +165,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
 
   } catch (error) {
     console.error('Final Error fetching from Google Sheets:', error);
+    // Return empty array instead of crashing, but allow UI to maybe show notification if we had a toast context
     return [];
   }
 };
