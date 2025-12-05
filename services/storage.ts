@@ -62,9 +62,17 @@ export const getSubmissions = async (): Promise<Submission[]> => {
   }
 
   try {
-    const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL);
+    // Fix CORS: Add timestamp to prevent caching and omit credentials
+    const urlWithParams = `${GOOGLE_SHEETS_SCRIPT_URL}?t=${Date.now()}`;
+    
+    const response = await fetch(urlWithParams, {
+        method: 'GET',
+        credentials: 'omit',
+        redirect: 'follow',
+    });
+
     if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Network response was not ok: ${response.status}`);
     }
     
     // Raw data from Google Sheet usually comes with keys exactly as the Header Row
