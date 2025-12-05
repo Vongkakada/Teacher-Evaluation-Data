@@ -1,6 +1,7 @@
 import { Category, RatingValue } from './types';
 
 // Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
+// Updated to the latest Deployment ID provided by the user
 export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5vXwG441UF0mM3knp-PCKIEGlUrAOt_AkiW1ZnuBz4l-Qpm2SUE3fs92rher9FQGVqA/exec";
 
 // Admin Credentials

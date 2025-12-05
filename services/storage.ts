@@ -38,7 +38,10 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   try {
     // We use "Content-Type": "text/plain;charset=utf-8" to force a "Simple Request".
     // This avoids CORS preflight issues with Google Scripts.
-    await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+    // We append a timestamp to prevent caching issues.
+    const url = `${GOOGLE_SHEETS_SCRIPT_URL}?t=${Date.now()}`;
+    
+    await fetch(url, {
       method: 'POST',
       body: JSON.stringify(finalPayload),
       mode: 'no-cors', 
@@ -63,12 +66,13 @@ export const getSubmissions = async (): Promise<Submission[]> => {
 
   // Helper function to try fetching with fallback
   const fetchWithFallback = async () => {
+    // Append timestamp to bust cache
     const timestamp = Date.now();
-    const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?t=${timestamp}`;
+    const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=read&t=${timestamp}`;
 
     try {
       // Attempt 1: Direct Fetch
-      console.log("Attempting direct fetch...");
+      console.log("Attempting direct fetch...", targetUrl);
       const response = await fetch(targetUrl, {
           method: 'GET',
           redirect: 'follow'
@@ -92,13 +96,14 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     } catch (directError: any) {
       // If we detected HTML response specifically (permissions issue), notify user immediately
       if (directError.message === "HTML_RESPONSE") {
-          alert("ចំណាំ៖ កម្មវិធីមិនអាចទាញយកទិន្នន័យបានទេ ដោយសារ Google Script ជាប់សិទ្ធិ (Permissions)។\n\nសូមចូលទៅកាន់ Google Apps Script -> Deploy -> Manage deployments -> Edit -> 'Who has access' ត្រូវដាក់ជា 'Anyone' ។");
+          alert("កំហុស៖ Google Script របស់អ្នកកំពុងបញ្ជូនមកនូវទំព័រ Login (HTML) មិនមែនទិន្នន័យទេ។\n\nដំណោះស្រាយ៖\n1. ចូលទៅកាន់ Google Apps Script -> Deploy -> Manage deployments\n2. ចុច Edit (រូបខ្មៅដៃ)\n3. ត្រង់ Version ត្រូវដូរដាក់ 'New Version' (សំខាន់!)\n4. 'Who has access' ត្រូវដាក់ 'Anyone'\n5. ចុច Deploy ម្តងទៀត។");
           throw directError;
       }
 
       console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
       
       // Attempt 2: Proxy Fetch (Using allorigins.win JSON Wrapper)
+      // We use the proxy to bypass CORS if the direct method fails due to network/browser policies
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       
       const proxyResponse = await fetch(proxyUrl);
@@ -117,7 +122,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
               // If parsing fails, check if it looks like HTML (often Google Login page)
               if (typeof proxyData.contents === 'string' && proxyData.contents.trim().startsWith('<')) {
                   console.error("Proxy returned HTML instead of JSON.");
-                  alert("បរាជ័យក្នុងការទាញយកទិន្នន័យ៖ Google Script កំពុងជាប់សិទ្ធិ (Access Denied)។\n\nសូមកែ Deployment ដាក់ 'Who has access' = 'Anyone'។");
+                  alert("កំហុស៖ Google Script កំពុងជាប់សិទ្ធិ (Access Denied)។\n\nសូមចូលទៅ Google Script, ចុច Deploy > Manage Deployments > Edit > ជ្រើសរើស 'New Version' > Deploy ម្ដងទៀត។");
                   throw new Error("Deployment Error: Script returned HTML.");
               }
               throw e;
