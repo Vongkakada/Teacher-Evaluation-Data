@@ -7,6 +7,8 @@ interface SheetSubmission extends Submission {
   room?: string;
   shift?: string;
   term?: string;
+  major?: string;
+  yearLevel?: string;
   sheetName?: string; // Explicitly send target sheet name
 }
 

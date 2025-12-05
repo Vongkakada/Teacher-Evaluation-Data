@@ -96,6 +96,17 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
             <span className="font-semibold">វគ្គសិក្សា (Term):</span> 
             <span className="font-medium text-blue-700">{teacherInfo.term || 'N/A'}</span>
           </div>
+          
+          <div className="flex flex-col">
+            <span className="font-semibold">ឯកទេស (Major):</span> 
+            <span className="">{teacherInfo.major || 'N/A'}</span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="font-semibold">ឆ្នាំទី (Year):</span> 
+            <span className="">{teacherInfo.year || 'N/A'}</span>
+          </div>
+
           <div className="flex flex-col">
             <span className="font-semibold">កាលបរិច្ឆេទ:</span> 
             <span>{teacherInfo.date}</span>

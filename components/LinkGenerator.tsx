@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TEACHERS_LIST, TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen } from 'lucide-react';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers } from 'lucide-react';
 
 export const LinkGenerator: React.FC = () => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
@@ -26,7 +26,9 @@ export const LinkGenerator: React.FC = () => {
     params.set('date', formattedDate);
     
     params.set('shift', info.shift);
-    params.set('term', info.term); // Add Term
+    params.set('term', info.term);
+    params.set('major', info.major);
+    params.set('year', info.year); // Year Level
 
     // Calculate Expiration
     let expiryTimestamp = 0;
@@ -106,8 +108,41 @@ export const LinkGenerator: React.FC = () => {
                 className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
         </div>
+
+        {/* Major Input */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <GraduationCap size={16} />
+                ឯកទេស (Major)
+            </label>
+            <input 
+                type="text" 
+                value={info.major}
+                onChange={(e) => setInfo({...info, major: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="Ex: គណនេយ្យ"
+            />
+        </div>
+
+        {/* Year Level Input */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Layers size={16} />
+                ឆ្នាំទី (Year Level)
+            </label>
+            <select
+                value={info.year}
+                onChange={(e) => setInfo({...info, year: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+                <option value="1">ឆ្នាំទី ១ (Year 1)</option>
+                <option value="2">ឆ្នាំទី ២ (Year 2)</option>
+                <option value="3">ឆ្នាំទី ៣ (Year 3)</option>
+                <option value="4">ឆ្នាំទី ៤ (Year 4)</option>
+            </select>
+        </div>
         
-        {/* Term Input as Dropdown */}
+        {/* Term Input */}
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 <BookOpen size={16} />

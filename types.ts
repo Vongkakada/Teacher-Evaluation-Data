@@ -29,6 +29,8 @@ export interface Submission {
   subject?: string;
   room?: string;
   shift?: string;
+  major?: string;
+  yearLevel?: string;
 }
 
 export interface TeacherInfo {
@@ -38,7 +40,8 @@ export interface TeacherInfo {
   room: string;
   shift: string;
   term: string; // Added Term
+  major: string;
+  year: string; // Year Level (1, 2, 3, 4)
   generation: string;
-  year: string;
   semester: string;
 }

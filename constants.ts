@@ -14,8 +14,9 @@ export const TEACHER_INFO_DEFAULT = {
   room: 'A102',
   shift: 'ព្រឹក',
   term: 'Term 1', // Default Term
-  generation: '26',
+  major: 'គណនេយ្យ',
   year: '1',
+  generation: '26',
   semester: '១',
 };
 

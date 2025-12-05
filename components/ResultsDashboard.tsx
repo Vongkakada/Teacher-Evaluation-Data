@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Category, Submission, TeacherInfo } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar } from 'lucide-react';
+import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar, Layers } from 'lucide-react';
 import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
 import { TEACHERS_LIST } from '../constants';
 
@@ -24,6 +24,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const [filterTerm, setFilterTerm] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
   const [filterYear, setFilterYear] = useState('All');
+  const [filterYearLevel, setFilterYearLevel] = useState('All'); // New Filter for Year Level (1, 2, 3, 4)
 
   // Derive unique Terms and Dates from actual data for dropdowns
   const availableTerms = Array.from(new Set(submissions.map(s => s.term).filter(Boolean)));
@@ -36,13 +37,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       const matchesTerm = filterTerm === 'All' || s.term === filterTerm;
       const matchesYear = filterYear === 'All' || date.getFullYear().toString() === filterYear;
       const matchesMonth = filterMonth === 'All' || (date.getMonth() + 1).toString() === filterMonth;
+      const matchesYearLevel = filterYearLevel === 'All' || s.yearLevel === filterYearLevel;
 
-      return matchesTeacher && matchesTerm && matchesYear && matchesMonth;
+      return matchesTeacher && matchesTerm && matchesYear && matchesMonth && matchesYearLevel;
   });
 
   const totalStudents = filteredSubmissions.length;
-  const currentTeacherName = filterTeacher;
-  const currentSubject = filteredSubmissions.length > 0 ? filteredSubmissions[0].subject || teacherInfo.subject : teacherInfo.subject;
+  // const currentTeacherName = filterTeacher;
+  // const currentSubject = filteredSubmissions.length > 0 ? filteredSubmissions[0].subject || teacherInfo.subject : teacherInfo.subject;
   const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
 
   // --- Share Link Logic ---
@@ -86,6 +88,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       'Teacher Name',
       'Term',
       'Subject',
+      'Major',
+      'Year Level',
       'Room',
       'Shift',
     ];
@@ -105,6 +109,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         sub.teacherName,
         sub.term || '-',
         sub.subject || '-',
+        sub.major || '-',
+        sub.yearLevel || '-',
         sub.room || '-',
         sub.shift || '-',
       ];
@@ -210,9 +216,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <Filter size={18} className="text-teal-600" />
                 ស្វែងរករបាយការណ៍ (Filter Report)
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {/* Teacher Filter */}
-                <div>
+                <div className="col-span-2 md:col-span-1">
                     <label className="block text-xs font-semibold text-gray-500 mb-1">ឈ្មោះគ្រូ (Teacher)</label>
                     <select 
                         value={filterTeacher}
@@ -237,6 +243,25 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         {availableTerms.map(t => (
                             <option key={t} value={t}>{t}</option>
                         ))}
+                    </select>
+                </div>
+
+                {/* Year Level Filter - NEW */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                       <Layers size={12} />
+                       ឆ្នាំទី (Year Level)
+                    </label>
+                    <select 
+                        value={filterYearLevel}
+                        onChange={(e) => setFilterYearLevel(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+                    >
+                        <option value="All">គ្រប់ឆ្នាំ (All Years)</option>
+                        <option value="1">ឆ្នាំទី ១</option>
+                        <option value="2">ឆ្នាំទី ២</option>
+                        <option value="3">ឆ្នាំទី ៣</option>
+                        <option value="4">ឆ្នាំទី ៤</option>
                     </select>
                 </div>
 
@@ -350,7 +375,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <p className="text-sm text-gray-500 mt-1">
                     គ្រូ: <span className="font-bold">{filterTeacher}</span> | 
                     Term: <span className="font-bold">{filterTerm}</span> | 
-                    Date: <span className="font-bold">{filterMonth === 'All' ? '' : `Month ${filterMonth}, `}{filterYear === 'All' ? 'All Time' : filterYear}</span>
+                    Year Level: <span className="font-bold">{filterYearLevel === 'All' ? 'All' : `Year ${filterYearLevel}`}</span>
                 </p>
             </div>
             

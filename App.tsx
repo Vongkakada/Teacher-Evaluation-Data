@@ -108,6 +108,8 @@ function App() {
             date: params.get('date') || TEACHER_INFO_DEFAULT.date,
             shift: params.get('shift') || TEACHER_INFO_DEFAULT.shift,
             term: params.get('term') || TEACHER_INFO_DEFAULT.term,
+            major: params.get('major') || TEACHER_INFO_DEFAULT.major,
+            year: params.get('year') || TEACHER_INFO_DEFAULT.year, // Year Level
         };
         setTeacherInfo(infoFromUrl);
 
@@ -143,7 +145,9 @@ function App() {
       subject: teacherInfo.subject,
       room: teacherInfo.room,
       shift: teacherInfo.shift,
-      term: teacherInfo.term
+      term: teacherInfo.term,
+      major: teacherInfo.major,
+      yearLevel: teacherInfo.year, // Use teacherInfo.year (1,2,3,4) as yearLevel
     };
 
     const success = await saveSubmission(fullSubmission);
