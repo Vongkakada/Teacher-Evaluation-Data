@@ -1,7 +1,7 @@
 import { Category, RatingValue } from './types';
 
 // Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
-export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweLMkgaCjMayMq0hLTYz9O_qFjI_WlVBRUWjPb2dLoD91qJQ2o_s19kW1gjhvLohu8HQ/exec";
+export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5vXwG441UF0mM3knp-PCKIEGlUrAOt_AkiW1ZnuBz4l-Qpm2SUE3fs92rher9FQGVqA/exec";
 
 // Admin Credentials
 export const ADMIN_USERNAME = 'admin';
