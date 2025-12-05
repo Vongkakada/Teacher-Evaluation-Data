@@ -23,7 +23,8 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   const date = new Date(submission.timestamp);
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const monthYear = `${monthNames[date.getMonth()]}-${date.getFullYear()}`;
-  // Default to 'General' if term is missing, though term is usually set
+  
+  // Clean term name just in case
   const termName = submission.term || 'General';
   const targetSheetName = `${termName} (${monthYear})`;
 
@@ -32,8 +33,11 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
     sheetName: targetSheetName
   };
 
+  console.log("Preparing to send data to Google Sheet:", finalPayload);
+
   try {
     // We use "Content-Type": "text/plain;charset=utf-8" to force a "Simple Request".
+    // This avoids CORS preflight issues with Google Scripts.
     await fetch(GOOGLE_SHEETS_SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify(finalPayload),
@@ -43,6 +47,7 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
       },
     });
 
+    console.log("Request sent successfully (Note: no-cors mode does not return response content).");
     return true;
   } catch (error) {
     console.error('Error saving to Google Sheets:', error);
@@ -57,9 +62,6 @@ export const getSubmissions = async (): Promise<Submission[]> => {
   }
 
   try {
-    // Note: getSubmissions usually fetches ALL data from the main script.
-    // If you want to fetch only from specific sheets, the Google Apps Script needs to support it.
-    // For now, we assume the script returns accumulated data from all sheets or a main DB sheet.
     const response = await fetch(GOOGLE_SHEETS_SCRIPT_URL);
     if (!response.ok) {
         throw new Error('Network response was not ok');
