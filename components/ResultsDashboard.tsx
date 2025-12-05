@@ -48,7 +48,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
   
   // Try to find the Major from the first submission in the filtered list
-  // If multiple majors are mixed in one filter view, this might just show the first one, which is standard for single-class reports.
   const currentMajor = filteredSubmissions.length > 0 ? filteredSubmissions[0].major || '-' : '-';
   
   // Year Level Logic
@@ -75,7 +74,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       params.set('mode', 'public_results');
       params.set('teacher', filterTeacher);
       // Note: Public link currently defaults to showing all data for that teacher.
-      // Specific term links would require more complex share logic not implemented here.
       return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
   };
 
@@ -200,11 +198,27 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   });
 
   const finalScore = questionStats.reduce((acc, cat) => acc + cat.subtotal, 0) / questionStats.length;
+  
+  // Calculate Grade
   let finalGrade = 'E';
   if (finalScore >= 90) finalGrade = 'A';
   else if (finalScore >= 80) finalGrade = 'B';
   else if (finalScore >= 65) finalGrade = 'C';
   else if (finalScore >= 50) finalGrade = 'D';
+
+  // Calculate GPA (4.0 Scale) based on the Final Score
+  // Mapping logic:
+  // 90-100 (A) -> 4.0
+  // 80-89  (B) -> 3.5
+  // 65-79  (C) -> 2.5
+  // 50-64  (D) -> 1.5
+  // < 50   (E) -> 0.0
+  let gpa = 0.0;
+  if (finalScore >= 90) gpa = 4.0;
+  else if (finalScore >= 80) gpa = 3.5;
+  else if (finalScore >= 65) gpa = 2.5;
+  else if (finalScore >= 50) gpa = 1.5;
+  else gpa = 0.0;
 
   const chartData = questionStats.map(c => ({
     name: c.title.split('(')[0],
@@ -408,7 +422,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         {/* Info Grid - Updated with Major and Year Level */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
+           {/* Row 1 - Top Stats */}
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
              <p className="text-xl sm:text-2xl font-bold text-blue-900">{totalStudents}</p>
@@ -422,16 +437,22 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
              <p className={`text-xl sm:text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
            </div>
            
-           {/* Second Row */}
-           <div>
+           {/* NEW GPA DISPLAY */}
+           <div className="bg-white p-2 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
+             <p className="text-gray-500 text-xs uppercase font-bold text-center md:text-left">GPA</p>
+             <p className="text-2xl sm:text-3xl font-bold text-purple-700 text-center md:text-left">{gpa.toFixed(2)}</p>
+           </div>
+           
+           {/* Row 2 - Details */}
+           <div className="col-span-1 border-t border-gray-200 pt-3 md:border-none md:pt-0">
              <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
              <p className="text-lg font-bold text-gray-900">{currentTerm}</p>
            </div>
-           <div>
+           <div className="col-span-1 border-t border-gray-200 pt-3 md:border-none md:pt-0">
              <p className="text-gray-500 text-xs uppercase font-bold">ឆ្នាំទី (Year Level)</p>
              <p className="text-lg font-bold text-gray-900">{currentYearLevel === 'All' ? 'All' : `Year ${currentYearLevel}`}</p>
            </div>
-           <div>
+           <div className="col-span-2 border-t border-gray-200 pt-3 md:border-none md:pt-0">
              <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
              <p className="text-lg font-bold text-gray-900 break-words">{currentMajor}</p>
            </div>
@@ -488,9 +509,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                     </React.Fragment>
                 ))}
                 <tr className="bg-teal-500 text-white font-bold print:bg-gray-300 print:text-black">
-                    <td colSpan={9} className="border border-gray-300 p-2 text-right pr-4">Total Score</td>
-                    <td className="border border-gray-300 p-2 text-center">{finalScore.toFixed(2)}</td>
-                    <td className="border border-gray-300 p-2 text-center">{finalGrade}</td>
+                    <td colSpan={9} className="border border-gray-300 p-2 text-right pr-4">
+                        <div className="flex flex-col items-end">
+                            <span>Total Score</span>
+                            <span className="text-xs font-normal opacity-80">(Average of all categories)</span>
+                        </div>
+                    </td>
+                    <td className="border border-gray-300 p-2 text-center align-middle text-lg">{finalScore.toFixed(2)}</td>
+                    <td className="border border-gray-300 p-2 text-center align-middle text-lg">{finalGrade}</td>
                 </tr>
             </tbody>
           </table>
@@ -498,12 +524,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
         {/* Legend */}
         <div className="mt-6 text-sm text-gray-600 border border-gray-200 p-3 rounded bg-gray-50">
-            <span className="font-bold mr-2">សម្គាល់ (Legend):</span>
-            <span className="mr-4 text-red-500">A=100-90</span>
-            <span className="mr-4 text-orange-500">B=89-80</span>
-            <span className="mr-4 text-yellow-600">C=79-65</span>
-            <span className="mr-4 text-blue-500">D=64-50</span>
-            <span className="mr-4 text-gray-500">E=49-0</span>
+            <div className="flex flex-wrap gap-4 items-center">
+                <span className="font-bold">សម្គាល់ (Legend):</span>
+                <span className="text-red-500 font-medium">A=90-100 (GPA 4.0)</span>
+                <span className="text-orange-500 font-medium">B=80-89 (GPA 3.5)</span>
+                <span className="text-yellow-600 font-medium">C=65-79 (GPA 2.5)</span>
+                <span className="text-blue-500 font-medium">D=50-64 (GPA 1.5)</span>
+                <span className="text-gray-500 font-medium">E=&lt;50 (GPA 0.0)</span>
+            </div>
         </div>
       </div>
       ) : (

@@ -77,6 +77,10 @@ export const getSubmissions = async (): Promise<Submission[]> => {
       // Check content type before parsing
       const contentType = response.headers.get("content-type");
       if (contentType && !contentType.includes("application/json")) {
+         // Special handling: Google Script returns HTML when permissions are wrong
+         if (contentType.includes("text/html")) {
+             throw new Error("HTML_RESPONSE");
+         }
          throw new Error(`Direct fetch returned non-JSON content type: ${contentType}`);
       }
       
@@ -85,11 +89,16 @@ export const getSubmissions = async (): Promise<Submission[]> => {
       }
       return await response.json();
 
-    } catch (directError) {
+    } catch (directError: any) {
+      // If we detected HTML response specifically (permissions issue), notify user immediately
+      if (directError.message === "HTML_RESPONSE") {
+          alert("ចំណាំ៖ កម្មវិធីមិនអាចទាញយកទិន្នន័យបានទេ ដោយសារ Google Script ជាប់សិទ្ធិ (Permissions)។\n\nសូមចូលទៅកាន់ Google Apps Script -> Deploy -> Manage deployments -> Edit -> 'Who has access' ត្រូវដាក់ជា 'Anyone' ។");
+          throw directError;
+      }
+
       console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
       
       // Attempt 2: Proxy Fetch (Using allorigins.win JSON Wrapper)
-      // We use /get instead of /raw to ensure we get a valid JSON response even if the target returns HTML (like a 404 or Login page)
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       
       const proxyResponse = await fetch(proxyUrl);
@@ -106,10 +115,10 @@ export const getSubmissions = async (): Promise<Submission[]> => {
               return JSON.parse(proxyData.contents);
           } catch (e) {
               // If parsing fails, check if it looks like HTML (often Google Login page)
-              if (proxyData.contents.trim().startsWith('<')) {
-                  console.error("Proxy returned HTML instead of JSON. This usually indicates the Google Script permissions are wrong.");
-                  console.error("Please ensure the Web App is deployed as 'Execute as: Me' and 'Who has access: Anyone'.");
-                  throw new Error("Deployment Error: Script returned HTML (Login Page?). Check 'Who has access' is set to 'Anyone'.");
+              if (typeof proxyData.contents === 'string' && proxyData.contents.trim().startsWith('<')) {
+                  console.error("Proxy returned HTML instead of JSON.");
+                  alert("បរាជ័យក្នុងការទាញយកទិន្នន័យ៖ Google Script កំពុងជាប់សិទ្ធិ (Access Denied)។\n\nសូមកែ Deployment ដាក់ 'Who has access' = 'Anyone'។");
+                  throw new Error("Deployment Error: Script returned HTML.");
               }
               throw e;
           }
@@ -126,7 +135,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     // Map the raw sheet data to our App's Submission Interface
     const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
         
-        // 1. Parse Ratings: Handle "Ratings (JSON)" column which is a string
+        // 1. Parse Ratings
         let parsedRatings: Record<string, number> = {};
         const ratingString = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
         
@@ -144,7 +153,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
         const dateVal = row['Date'] || row['timestamp'];
         const timestamp = dateVal ? new Date(dateVal).getTime() : Date.now();
 
-        // 3. Construct the Submission Object using Keys from Sheet
+        // 3. Construct the Submission Object
         return {
             id: row['ID'] || row['id'] || 'unknown',
             timestamp: timestamp,
@@ -165,7 +174,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
 
   } catch (error) {
     console.error('Final Error fetching from Google Sheets:', error);
-    // Return empty array instead of crashing, but allow UI to maybe show notification if we had a toast context
+    // Return empty array instead of crashing
     return [];
   }
 };
