@@ -397,7 +397,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
                 {/* Show active filters summary */}
                 <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-2">
-                    <span className="bg-gray-100 px-2 rounded">គ្រូ: <span className="font-bold">{filterTeacher}</span></span>
+                    <span className="bg-gray-100 px-2 rounded">សាស្រ្តាចារ្យ: <span className="font-bold">{filterTeacher}</span></span>
                     <span className="bg-gray-100 px-2 rounded">Term: <span className="font-bold">{filterTerm}</span></span>
                     <span className="bg-gray-100 px-2 rounded">Year: <span className="font-bold">{filterYearLevel === 'All' ? 'All' : `Year ${filterYearLevel}`}</span></span>
                     <span className="bg-gray-100 px-2 rounded">Major: <span className="font-bold">{currentMajor}</span></span>
@@ -430,7 +430,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            {/* Row 1 */}
            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
                <div>
-                   <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះគ្រូ (Teacher)</p>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះសាស្ត្រាចារ្យ (Teacher)</p>
                    <p className="text-sm sm:text-base font-bold text-gray-900 truncate" title={filterTeacher}>{filterTeacher}</p>
                </div>
                <div>
