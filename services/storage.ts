@@ -61,24 +61,42 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     return getFromLocal();
   }
 
-  try {
-    // Fix CORS: Add timestamp to prevent caching and omit credentials
-    const urlWithParams = `${GOOGLE_SHEETS_SCRIPT_URL}?t=${Date.now()}`;
-    
-    const response = await fetch(urlWithParams, {
-        method: 'GET',
-        credentials: 'omit',
-        redirect: 'follow',
-    });
+  // Helper function to try fetching with fallback
+  const fetchWithFallback = async () => {
+    const timestamp = Date.now();
+    const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?t=${timestamp}`;
 
-    if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.status}`);
+    try {
+      // Attempt 1: Direct Fetch
+      console.log("Attempting direct fetch...");
+      const response = await fetch(targetUrl, {
+          method: 'GET',
+          redirect: 'follow'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Direct fetch failed with status: ${response.status}`);
+      }
+      return await response.json();
+
+    } catch (directError) {
+      console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
+      
+      // Attempt 2: Proxy Fetch (Using allorigins.win to bypass CORS)
+      // We encode the target URL and pass it to the proxy
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+      
+      const proxyResponse = await fetch(proxyUrl);
+      if (!proxyResponse.ok) {
+         throw new Error('Proxy fetch also failed');
+      }
+      return await proxyResponse.json();
     }
-    
-    // Raw data from Google Sheet usually comes with keys exactly as the Header Row
-    // e.g. { "ID": "...", "Date": "...", "Ratings (JSON)": "...", "Year Level": "..." }
-    const rawData = await response.json();
-    console.log("Raw Data from Sheet:", rawData);
+  };
+
+  try {
+    const rawData = await fetchWithFallback();
+    console.log("Raw Data fetched successfully:", rawData);
 
     // Map the raw sheet data to our App's Submission Interface
     const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
@@ -121,7 +139,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     return formattedData;
 
   } catch (error) {
-    console.error('Error fetching from Google Sheets:', error);
+    console.error('Final Error fetching from Google Sheets:', error);
     return [];
   }
 };
