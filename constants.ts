@@ -3,6 +3,10 @@ import { Category, RatingValue } from './types';
 // Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
 export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbweLMkgaCjMayMq0hLTYz9O_qFjI_WlVBRUWjPb2dLoD91qJQ2o_s19kW1gjhvLohu8HQ/exec";
 
+// Admin Credentials
+export const ADMIN_USERNAME = 'admin';
+export const ADMIN_PASSWORD = 'admin123';
+
 export const TEACHER_INFO_DEFAULT = {
   name: 'ជិន ពិសិដ្ឋ', // Default to first teacher
   subject: 'សេដ្ឋកិច្ច',

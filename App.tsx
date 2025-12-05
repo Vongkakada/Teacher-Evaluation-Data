@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { EvaluationForm } from './components/EvaluationForm';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { LinkGenerator } from './components/LinkGenerator';
+import { LoginForm } from './components/LoginForm'; // Import Login Form
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
 import { Submission, TeacherInfo } from './types';
 import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus } from './services/storage';
-import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban } from 'lucide-react';
+import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban, Timer } from 'lucide-react';
 
 function App() {
   const [view, setView] = useState<'form' | 'dashboard' | 'generator' | 'access_denied' | 'expired'>('form');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
+  // Auth State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingView, setPendingView] = useState<'dashboard' | 'generator' | null>(null);
+
   // State for the form (Teacher Info)
   const [teacherInfo, setTeacherInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
   const [isReadOnlyMode, setIsReadOnlyMode] = useState(false);
@@ -19,8 +25,10 @@ function App() {
   // New State: Is the user viewing a Public Result Link?
   const [isPublicView, setIsPublicView] = useState(false);
 
-  // State to hold the expiry timestamp for display
+  // Expiry Logic
   const [expiredTimestamp, setExpiredTimestamp] = useState<number | null>(null);
+  const [timeLeftString, setTimeLeftString] = useState<string>('');
+  const timerRef = useRef<number | null>(null);
 
   // Function to load data from Google Sheets
   const loadData = async () => {
@@ -29,6 +37,36 @@ function App() {
     setSubmissions(data);
     setIsLoadingData(false);
   };
+
+  // Countdown Logic
+  useEffect(() => {
+    if (expiredTimestamp && view === 'form') {
+      timerRef.current = window.setInterval(() => {
+        const now = Date.now();
+        const distance = expiredTimestamp - now;
+
+        if (distance < 0) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setView('expired');
+          setTimeLeftString('');
+        } else {
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          let str = '';
+          if (days > 0) str += `${days}ថ្ងៃ `;
+          str += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          setTimeLeftString(str);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [expiredTimestamp, view]);
 
   // Check URL params on mount
   useEffect(() => {
@@ -76,10 +114,15 @@ function App() {
         // Check Expiration
         if (expiryParam) {
             const expiryTime = parseInt(expiryParam, 10);
-            if (!isNaN(expiryTime) && Date.now() > expiryTime) {
-                setExpiredTimestamp(expiryTime);
-                setView('expired');
-                return;
+            if (!isNaN(expiryTime)) {
+                if (Date.now() > expiryTime) {
+                    setExpiredTimestamp(expiryTime);
+                    setView('expired');
+                    return;
+                } else {
+                    // Valid and running
+                    setExpiredTimestamp(expiryTime);
+                }
             }
         }
 
@@ -89,7 +132,7 @@ function App() {
     
     // 3. Load initial data (in background) if not public view
     if (mode !== 'public_results' && !teacherParam) {
-        loadData();
+        // We don't load data automatically for admins anymore until they login and go to dashboard
     }
   }, []);
 
@@ -106,8 +149,8 @@ function App() {
     const success = await saveSubmission(fullSubmission);
     if (success) {
         alert('ការវាយតម្លៃត្រូវបានបញ្ជូនជោគជ័យ! (Submission Successful)');
-        // Reload data to reflect new submission
-        await loadData();
+        // Reload data to reflect new submission if on dashboard (rare case for student view but safe)
+        if (view === 'dashboard') await loadData();
     }
   };
   
@@ -117,11 +160,42 @@ function App() {
         setSubmissions([]); // This clears local view state
     }
   }
+
+  // Handle Navigation with Auth
+  const handleNavClick = (targetView: 'form' | 'dashboard' | 'generator') => {
+      if (targetView === 'form') {
+          setView('form');
+          return;
+      }
+
+      // Protected Views
+      if (isLoggedIn) {
+          setView(targetView);
+          if (targetView === 'dashboard') {
+              loadData();
+          }
+      } else {
+          setPendingView(targetView);
+          setShowLoginModal(true);
+      }
+  };
+
+  const handleLoginSuccess = () => {
+      setIsLoggedIn(true);
+      setShowLoginModal(false);
+      if (pendingView) {
+          setView(pendingView);
+          if (pendingView === 'dashboard') {
+              loadData();
+          }
+      }
+      setPendingView(null);
+  };
   
-  // Dashboard default info
+  // Dashboard default info (empty name for admin view to show all/filter)
   const dashboardTeacherInfo = {
       ...TEACHER_INFO_DEFAULT,
-      name: '' // Will be handled by the dashboard's internal filter state
+      name: '' 
   };
 
   // Render Access Denied Page
@@ -134,9 +208,8 @@ function App() {
                   </div>
                   <h1 className="text-xl font-moul text-gray-800 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
                   <p className="text-gray-600 mb-8">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រព័ន្ធ។</p>
-                  <a href="/" className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900 transition">
-                      ត្រឡប់ទៅទំព័រដើម
-                  </a>
+                  
+                  {/* REMOVED BACK BUTTON AS REQUESTED */}
               </div>
           </div>
       );
@@ -193,19 +266,27 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
+      
+      {/* Login Modal */}
+      {showLoginModal && (
+          <LoginForm 
+            onLoginSuccess={handleLoginSuccess} 
+            onCancel={() => setShowLoginModal(false)}
+          />
+      )}
+
       {/* Navbar - Hidden on Public View */}
       {!isPublicView && (
       <nav className="bg-teal-700 text-white shadow-md sticky top-0 z-40 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setView('form')}>
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleNavClick('form')}>
               <img 
                 src="/LOGO.png" 
                 alt="NUCK Logo" 
                 className="h-12 w-auto sm:h-14 bg-white rounded-full p-0.5 object-contain"
               />
               <div className="hidden sm:block">
-                {/* Updated University Name - Adjusted Text Size for Length */}
                 <h1 className="font-moul text-xs sm:text-sm md:text-base leading-tight tracking-wide line-clamp-2 max-w-md">
                    សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម
                 </h1>
@@ -217,7 +298,7 @@ function App() {
             
             <div className="flex space-x-1 sm:space-x-2">
               <button
-                onClick={() => setView('form')}
+                onClick={() => handleNavClick('form')}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
                   view === 'form' ? 'bg-teal-800 text-white' : 'text-teal-100 hover:bg-teal-600'
                 }`}
@@ -229,7 +310,7 @@ function App() {
               {!isReadOnlyMode && (
                 <>
                     <button
-                        onClick={() => setView('generator')}
+                        onClick={() => handleNavClick('generator')}
                         className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
                         view === 'generator' ? 'bg-teal-800 text-white' : 'text-teal-100 hover:bg-teal-600'
                         }`}
@@ -239,14 +320,14 @@ function App() {
                     </button>
                     
                     <button
-                        onClick={() => { setView('dashboard'); loadData(); }}
+                        onClick={() => handleNavClick('dashboard')}
                         className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition relative ${
                         view === 'dashboard' ? 'bg-teal-800 text-white' : 'text-teal-100 hover:bg-teal-600'
                         }`}
                     >
                         <LayoutDashboard size={18} />
                         <span className="hidden sm:inline">លទ្ធផល (Results)</span>
-                        {!isLoadingData && submissions.length > 0 && (
+                        {!isLoadingData && submissions.length > 0 && view === 'dashboard' && (
                         <span className="absolute top-1 right-1 sm:top-0 sm:right-0 sm:relative bg-red-500 text-white text-[10px] sm:text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center transform translate-x-1 -translate-y-1 sm:translate-x-0 sm:translate-y-0">
                             {submissions.length}
                         </span>
@@ -270,7 +351,19 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+        
+        {/* COUNTDOWN TIMER BANNER (Only in Form View + With Expiry) */}
+        {view === 'form' && timeLeftString && (
+          <div className="sticky top-0 z-30 mb-6 bg-red-600 text-white rounded-lg shadow-lg p-3 flex items-center justify-center gap-3 animate-pulse">
+             <Timer className="animate-bounce" />
+             <div className="font-bold text-center">
+                 <span className="text-red-100 text-xs uppercase block tracking-wider">ពេលវេលានៅសល់ (Time Remaining)</span>
+                 <span className="text-xl font-mono">{timeLeftString}</span>
+             </div>
+          </div>
+        )}
+
         {view === 'form' && (
           <div className="animate-fade-in">
              <div className="text-center mb-8">
@@ -301,13 +394,13 @@ function App() {
           </div>
         )}
 
-        {view === 'generator' && !isReadOnlyMode && !isPublicView && (
+        {view === 'generator' && !isReadOnlyMode && !isPublicView && isLoggedIn && (
              <div className="animate-fade-in">
                  <LinkGenerator />
              </div>
         )}
 
-        {view === 'dashboard' && !isReadOnlyMode && (
+        {view === 'dashboard' && !isReadOnlyMode && (isLoggedIn || isPublicView) && (
           <div className="animate-fade-in">
              {/* Admin Controls (Hidden in Public View) */}
              {!isPublicView && (
@@ -340,7 +433,8 @@ function App() {
                  <ResultsDashboard 
                     submissions={submissions}
                     categories={EVALUATION_DATA}
-                    teacherInfo={dashboardTeacherInfo}
+                    // IMPORTANT FIX: If Public View, pass the actual teacher info caught from URL to initialize filter correctly
+                    teacherInfo={isPublicView ? teacherInfo : dashboardTeacherInfo}
                     isPublicView={isPublicView}
                  />
              )}
