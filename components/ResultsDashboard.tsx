@@ -43,9 +43,16 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   });
 
   const totalStudents = filteredSubmissions.length;
-  // const currentTeacherName = filterTeacher;
-  // const currentSubject = filteredSubmissions.length > 0 ? filteredSubmissions[0].subject || teacherInfo.subject : teacherInfo.subject;
+  
+  // Calculate dynamic display values
   const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
+  
+  // Try to find the Major from the first submission in the filtered list
+  // If multiple majors are mixed in one filter view, this might just show the first one, which is standard for single-class reports.
+  const currentMajor = filteredSubmissions.length > 0 ? filteredSubmissions[0].major || '-' : '-';
+  
+  // Year Level Logic
+  const currentYearLevel = filterYearLevel !== 'All' ? filterYearLevel : (filteredSubmissions.length > 0 ? filteredSubmissions[0].yearLevel || '-' : '-');
 
   // --- Share Link Logic ---
   const [isShareActive, setIsShareActive] = useState(false);
@@ -372,10 +379,11 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             <div>
                 <h2 className="text-2xl font-moul text-gray-800">លទ្ធផលវាយតម្លៃ (Evaluation Results)</h2>
                 {/* Show active filters summary */}
-                <p className="text-sm text-gray-500 mt-1">
-                    គ្រូ: <span className="font-bold">{filterTeacher}</span> | 
-                    Term: <span className="font-bold">{filterTerm}</span> | 
-                    Year Level: <span className="font-bold">{filterYearLevel === 'All' ? 'All' : `Year ${filterYearLevel}`}</span>
+                <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-2">
+                    <span className="bg-gray-100 px-2 rounded">គ្រូ: <span className="font-bold">{filterTeacher}</span></span>
+                    <span className="bg-gray-100 px-2 rounded">Term: <span className="font-bold">{filterTerm}</span></span>
+                    <span className="bg-gray-100 px-2 rounded">Year: <span className="font-bold">{filterYearLevel === 'All' ? 'All' : `Year ${filterYearLevel}`}</span></span>
+                    <span className="bg-gray-100 px-2 rounded">Major: <span className="font-bold">{currentMajor}</span></span>
                 </p>
             </div>
             
@@ -399,23 +407,33 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </div>
         </div>
 
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
+        {/* Info Grid - Updated with Major and Year Level */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300">
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
-             <p className="text-2xl font-bold text-blue-900">{totalStudents}</p>
+             <p className="text-xl sm:text-2xl font-bold text-blue-900">{totalStudents}</p>
            </div>
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">ពិន្ទុសរុប (Total Score)</p>
-             <p className="text-2xl font-bold text-blue-900">{finalScore.toFixed(2)}</p>
+             <p className="text-xl sm:text-2xl font-bold text-blue-900">{finalScore.toFixed(2)}</p>
            </div>
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">និទ្ទេស (Grade)</p>
-             <p className={`text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
+             <p className={`text-xl sm:text-2xl font-bold ${finalGrade === 'A' ? 'text-green-600' : 'text-yellow-600'}`}>{finalGrade}</p>
            </div>
+           
+           {/* Second Row */}
            <div>
              <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
              <p className="text-lg font-bold text-gray-900">{currentTerm}</p>
+           </div>
+           <div>
+             <p className="text-gray-500 text-xs uppercase font-bold">ឆ្នាំទី (Year Level)</p>
+             <p className="text-lg font-bold text-gray-900">{currentYearLevel === 'All' ? 'All' : `Year ${currentYearLevel}`}</p>
+           </div>
+           <div>
+             <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
+             <p className="text-lg font-bold text-gray-900 break-words">{currentMajor}</p>
            </div>
         </div>
 
