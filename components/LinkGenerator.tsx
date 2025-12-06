@@ -137,6 +137,25 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
             />
         </div>
 
+        {/* Term Input */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <BookOpen size={16} />
+                វគ្គសិក្សា (Term)
+            </label>
+            <div className="relative">
+                <select
+                    value={info.term}
+                    onChange={(e) => setInfo({...info, term: e.target.value})}
+                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                    {TERMS_LIST.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
+            </div>
+        </div>
+
         {/* Major Input */}
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -170,25 +189,6 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
             </select>
         </div>
         
-        {/* Term Input */}
-        <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                <BookOpen size={16} />
-                វគ្គសិក្សា (Term)
-            </label>
-            <div className="relative">
-                <select
-                    value={info.term}
-                    onChange={(e) => setInfo({...info, term: e.target.value})}
-                    className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                    {TERMS_LIST.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                    ))}
-                </select>
-            </div>
-        </div>
-
         {/* Date Calendar Input */}
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
