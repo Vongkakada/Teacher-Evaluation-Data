@@ -412,7 +412,10 @@ function App() {
 
         {view === 'generator' && !isReadOnlyMode && !isPublicView && isLoggedIn && (
              <div className="animate-fade-in">
-                 <LinkGenerator teachersList={availableTeachers} /> {/* PASS DYNAMIC LIST */}
+                 <LinkGenerator 
+                    teachersList={availableTeachers} // PASS DYNAMIC LIST
+                    onRefreshTeachers={fetchTeachers} // PASS REFRESH FUNCTION
+                 /> 
              </div>
         )}
 

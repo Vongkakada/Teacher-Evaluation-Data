@@ -1,21 +1,31 @@
 import React, { useState } from 'react';
 import { TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers } from 'lucide-react';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers, RefreshCw } from 'lucide-react';
 
 interface LinkGeneratorProps {
     teachersList: string[];
+    onRefreshTeachers?: () => Promise<void>; // Prop to trigger refresh from App
 }
 
-export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList }) => {
+export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRefreshTeachers }) => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [isShortening, setIsShortening] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Expiry State
   const [expiryType, setExpiryType] = useState<'unlimited' | '24h' | '48h' | 'custom'>('24h');
   const [customDate, setCustomDate] = useState('');
+
+  const handleRefreshTeachers = async () => {
+      if (onRefreshTeachers) {
+          setIsRefreshing(true);
+          await onRefreshTeachers();
+          setIsRefreshing(false);
+      }
+  };
 
   const generateLink = () => {
     // Create URL search params
@@ -95,13 +105,27 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList }) =>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">សាស្ត្រាចារ្យ (Teacher)</label>
-          <select 
-            value={info.name}
-            onChange={(e) => setInfo({...info, name: e.target.value})}
-            className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            {teachersList.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <div className="flex gap-2">
+              <select 
+                value={info.name}
+                onChange={(e) => setInfo({...info, name: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                {teachersList.length === 0 && <option value="">No teachers found</option>}
+                {teachersList.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {onRefreshTeachers && (
+                  <button 
+                    onClick={handleRefreshTeachers}
+                    disabled={isRefreshing}
+                    className="p-2 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 transition-colors text-blue-600"
+                    title="Refresh Teachers from Sheet"
+                  >
+                      <RefreshCw size={20} className={isRefreshing ? "animate-spin" : ""} />
+                  </button>
+              )}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">* ទាញយកឈ្មោះពី Sheet "Teachers" (Action: getTeachers)</p>
         </div>
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">មុខវិជ្ជា (Subject)</label>

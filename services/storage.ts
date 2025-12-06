@@ -26,6 +26,7 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   
   // Clean term name just in case
   const termName = submission.term || 'General';
+  // Matches the logic in the user's GAS: "data.sheetName"
   const targetSheetName = `${termName} (${monthYear})`;
 
   const finalPayload: SheetSubmission = {
@@ -65,48 +66,33 @@ export const getTeachersFromSheet = async (): Promise<string[]> => {
     return [];
   }
 
+  // Corresponds to the GAS code: if (action == "getTeachers") { ... }
   const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTeachers&t=${Date.now()}`;
   
-  // Helper to safely parse and extract teacher names (Strings only)
-  const parseTeacherList = (data: any): string[] => {
-      if (!Array.isArray(data)) return [];
-
-      const teachers = data.map((item: any) => {
-          // If already a string
-          if (typeof item === 'string') return item.trim();
-          
-          // If object (fixes Error #31: objects with {Name, ...} keys)
-          if (typeof item === 'object' && item !== null) {
-              // Try common keys based on the error description and standard patterns
-              const name = item.Name || item.name || item.Teacher || item.teacher;
-              if (name && typeof name === 'string') return name.trim();
-              
-              // Fallback: Check values if keys don't match known patterns
-              const values = Object.values(item);
-              if (values.length > 0 && typeof values[0] === 'string') {
-                  return (values[0] as string).trim();
-              }
-          }
-          return "";
-      });
-
-      // Filter empty strings and deduplicate
-      return Array.from(new Set(teachers.filter(t => t.length > 0)));
-  };
-
   try {
+     console.log("Fetching teachers from:", targetUrl);
      // Attempt direct fetch first
      const response = await fetch(targetUrl, { method: 'GET', redirect: 'follow' });
+     
      if (response.ok) {
         const data = await response.json();
-        const parsed = parseTeacherList(data);
-        if (parsed.length > 0) return parsed;
+        // The GAS code returns a simple JSON Array: ["Teacher A", "Teacher B"]
+        // We validate that it is indeed an array
+        if (Array.isArray(data)) {
+            // Filter out empty strings and trim whitespace
+            const cleanList = data
+                .map(item => String(item).trim())
+                .filter(name => name.length > 0);
+            
+            // Deduplicate just in case
+            return Array.from(new Set(cleanList));
+        }
      }
   } catch (e) {
       console.warn("Direct teacher fetch failed, trying proxy...", e);
   }
 
-  // Fallback to proxy if CORS fails
+  // Fallback to proxy if CORS fails (common with GAS Web Apps depending on deployment settings)
   try {
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       const proxyResponse = await fetch(proxyUrl);
@@ -114,8 +100,12 @@ export const getTeachersFromSheet = async (): Promise<string[]> => {
           const proxyData = await proxyResponse.json();
           if (proxyData.contents) {
               const data = JSON.parse(proxyData.contents);
-              const parsed = parseTeacherList(data);
-              if (parsed.length > 0) return parsed;
+              if (Array.isArray(data)) {
+                  const cleanList = data
+                    .map((item: any) => String(item).trim())
+                    .filter((name: string) => name.length > 0);
+                  return Array.from(new Set(cleanList));
+              }
           }
       }
   } catch (e) {
@@ -134,6 +124,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
   const fetchWithFallback = async () => {
     // Append timestamp to bust cache
     const timestamp = Date.now();
+    // Corresponds to GAS code: else { // handleRequest(e) for GET }
     const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=read&t=${timestamp}`;
 
     try {
@@ -169,7 +160,6 @@ export const getSubmissions = async (): Promise<Submission[]> => {
       console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
       
       // Attempt 2: Proxy Fetch (Using allorigins.win JSON Wrapper)
-      // We use the proxy to bypass CORS if the direct method fails due to network/browser policies
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       
       const proxyResponse = await fetch(proxyUrl);
@@ -185,7 +175,6 @@ export const getSubmissions = async (): Promise<Submission[]> => {
               // The contents should be the JSON string from the Sheet
               return JSON.parse(proxyData.contents);
           } catch (e) {
-              // If parsing fails, check if it looks like HTML (often Google Login page)
               if (typeof proxyData.contents === 'string' && proxyData.contents.trim().startsWith('<')) {
                   console.error("Proxy returned HTML instead of JSON.");
                   alert("កំហុស៖ Google Script កំពុងជាប់សិទ្ធិ (Access Denied)។\n\nសូមចូលទៅ Google Script, ចុច Deploy > Manage Deployments > Edit > ជ្រើសរើស 'New Version' > Deploy ម្ដងទៀត។");
@@ -240,12 +229,10 @@ export const getSubmissions = async (): Promise<Submission[]> => {
         };
     }) : [];
 
-    console.log("Formatted Data for App:", formattedData);
     return formattedData;
 
   } catch (error) {
     console.error('Final Error fetching from Google Sheets:', error);
-    // Return empty array instead of crashing
     return [];
   }
 };
