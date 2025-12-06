@@ -477,21 +477,21 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         {/* The Big Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse border border-gray-300">
+        <div className="overflow-x-auto print:overflow-visible p-1">
+          <table className="w-full text-sm border-collapse border border-gray-500 print:border-2 print:border-black">
             <thead>
                 <tr className="bg-teal-600 text-white print:bg-gray-200 print:text-black">
-                    <th className="border border-gray-300 p-2 text-left w-1/3">លក្ខណៈវិនិច្ឆ័យ (Criteria)</th>
-                    <th className="border border-gray-300 p-2 text-center w-64">សូចនាករ (Indicators)</th>
-                    <th className="border border-gray-300 p-2 w-8">A</th>
-                    <th className="border border-gray-300 p-2 w-8">B</th>
-                    <th className="border border-gray-300 p-2 w-8">C</th>
-                    <th className="border border-gray-300 p-2 w-8">D</th>
-                    <th className="border border-gray-300 p-2 w-8">E</th>
-                    <th className="border border-gray-300 p-2 w-16">Score</th>
-                    <th className="border border-gray-300 p-2 w-16">Result</th>
-                    <th className="border border-gray-300 p-2 w-16">Total</th>
-                    <th className="border border-gray-300 p-2 w-16">Grade</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 text-left w-1/3">លក្ខណៈវិនិច្ឆ័យ (Criteria)</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 text-center w-64">សូចនាករ (Indicators)</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">A</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">B</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">C</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">D</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">E</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Score</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Result</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Total</th>
+                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Grade</th>
                 </tr>
             </thead>
             <tbody>
@@ -500,24 +500,24 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         {cat.questions.map((q, qIndex) => (
                             <tr key={q.id} className="hover:bg-gray-50">
                                 {qIndex === 0 && (
-                                    <td rowSpan={cat.questions.length} className="border border-gray-300 p-2 font-bold align-middle bg-gray-50">
+                                    <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 font-bold align-middle bg-gray-50">
                                         {cat.title}
                                     </td>
                                 )}
-                                <td className="border border-gray-300 p-2">{q.text}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.counts[5]}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.counts[4]}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.counts[3]}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.counts[2]}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.counts[1]}</td>
-                                <td className="border border-gray-300 p-2 text-center font-medium">{q.percentage.toFixed(2)}</td>
-                                <td className="border border-gray-300 p-2 text-center">{q.resultLabel}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2">{q.text}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[5]}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[4]}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[3]}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[2]}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[1]}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center font-medium">{q.percentage.toFixed(2)}</td>
+                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.resultLabel}</td>
                                 {qIndex === 0 && (
                                     <>
-                                        <td rowSpan={cat.questions.length} className="border border-gray-300 p-2 text-center font-bold align-middle">
+                                        <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 text-center font-bold align-middle">
                                             {cat.subtotal.toFixed(2)}
                                         </td>
-                                        <td rowSpan={cat.questions.length} className="border border-gray-300 p-2 text-center font-bold align-middle text-lg">
+                                        <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 text-center font-bold align-middle text-lg">
                                             {cat.grade}
                                         </td>
                                     </>
@@ -527,14 +527,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                     </React.Fragment>
                 ))}
                 <tr className="bg-teal-500 text-white font-bold print:bg-gray-300 print:text-black">
-                    <td colSpan={9} className="border border-gray-300 p-2 text-right pr-4">
+                    <td colSpan={9} className="border border-gray-500 print:border print:border-black p-2 text-right pr-4">
                         <div className="flex flex-col items-end">
                             <span>Total Score</span>
                             <span className="text-xs font-normal opacity-80">(Average of all categories)</span>
                         </div>
                     </td>
-                    <td className="border border-gray-300 p-2 text-center align-middle text-lg">{finalScore.toFixed(2)}</td>
-                    <td className="border border-gray-300 p-2 text-center align-middle text-lg">{finalGrade}</td>
+                    <td className="border border-gray-500 print:border print:border-black p-2 text-center align-middle text-lg">{finalScore.toFixed(2)}</td>
+                    <td className="border border-gray-500 print:border print:border-black p-2 text-center align-middle text-lg">{finalGrade}</td>
                 </tr>
             </tbody>
           </table>
@@ -574,7 +574,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
             {/* Bottom Row: Director */}
             <div className="mt-16 text-center text-sm font-sans text-black leading-loose">
-                <p className="font-moul mb-4">បានត្រួតពិនិត្យ និងឯកភាព</p>
+                <p className="mb-4">បានត្រួតពិនិត្យ និងឯកភាព</p>
                 <p className="font-moul text-lg">នាយកសាខា</p>
             </div>
         </div>
