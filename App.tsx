@@ -5,7 +5,7 @@ import { LinkGenerator } from './components/LinkGenerator';
 import { LoginForm } from './components/LoginForm'; // Import Login Form
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
 import { Submission, TeacherInfo } from './types';
-import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus } from './services/storage';
+import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus, getTeachersFromSheet } from './services/storage';
 import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban, Timer } from 'lucide-react';
 
 function App() {
@@ -13,6 +13,9 @@ function App() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
+  // Dynamic Teacher List State (Initialized with Default)
+  const [availableTeachers, setAvailableTeachers] = useState<string[]>(TEACHERS_LIST);
+
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -37,39 +40,19 @@ function App() {
     setSubmissions(data);
     setIsLoadingData(false);
   };
+  
+  // Function to fetch latest teacher list from Sheet
+  const fetchTeachers = async () => {
+      const teachers = await getTeachersFromSheet();
+      if (teachers && teachers.length > 0) {
+          console.log("Updated teachers list from sheet:", teachers);
+          setAvailableTeachers(teachers);
+      }
+  };
 
-  // Countdown Logic
+  // Initial Load Effects
   useEffect(() => {
-    if (expiredTimestamp && view === 'form') {
-      timerRef.current = window.setInterval(() => {
-        const now = Date.now();
-        const distance = expiredTimestamp - now;
-
-        if (distance < 0) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setView('expired');
-          setTimeLeftString('');
-        } else {
-          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-          let str = '';
-          if (days > 0) str += `${days}ថ្ងៃ `;
-          str += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          setTimeLeftString(str);
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [expiredTimestamp, view]);
-
-  // Check URL params on mount
-  useEffect(() => {
+    // 1. Check URL Params
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
     const teacherParam = params.get('teacher');
@@ -94,7 +77,7 @@ function App() {
         } else {
             setView('access_denied');
         }
-        return;
+        return; // Don't run other checks
     }
     
     // Case 2: Student Scanning QR Code (Form View)
@@ -131,12 +114,43 @@ function App() {
       setIsReadOnlyMode(true);
       setView('form');
     }
-    
-    // 3. Load initial data (in background) if not public view
-    if (mode !== 'public_results' && !teacherParam) {
-        // We don't load data automatically for admins anymore until they login and go to dashboard
-    }
+
+    // 2. Fetch Teacher List in background (for Generator/Form Dropdowns)
+    // We do this regardless of view so the data is ready if they switch views
+    fetchTeachers();
+
   }, []);
+
+  // Countdown Logic
+  useEffect(() => {
+    if (expiredTimestamp && view === 'form') {
+      timerRef.current = window.setInterval(() => {
+        const now = Date.now();
+        const distance = expiredTimestamp - now;
+
+        if (distance < 0) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setView('expired');
+          setTimeLeftString('');
+        } else {
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          let str = '';
+          if (days > 0) str += `${days}ថ្ងៃ `;
+          str += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          setTimeLeftString(str);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [expiredTimestamp, view]);
+
 
   const handleSubmission = async (submission: Submission) => {
     // Add extra info for the sheet
@@ -212,8 +226,6 @@ function App() {
                   </div>
                   <h1 className="text-xl font-moul text-gray-800 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
                   <p className="text-gray-600 mb-8">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រព័ន្ធ។</p>
-                  
-                  {/* REMOVED BACK BUTTON AS REQUESTED */}
               </div>
           </div>
       );
@@ -389,7 +401,7 @@ function App() {
              </div>
             <EvaluationForm
               teacherInfo={teacherInfo}
-              teachers={TEACHERS_LIST}
+              teachers={availableTeachers} // PASS DYNAMIC LIST
               onTeacherChange={(name) => setTeacherInfo({...teacherInfo, name})}
               categories={EVALUATION_DATA}
               onSubmit={handleSubmission}
@@ -400,7 +412,7 @@ function App() {
 
         {view === 'generator' && !isReadOnlyMode && !isPublicView && isLoggedIn && (
              <div className="animate-fade-in">
-                 <LinkGenerator />
+                 <LinkGenerator teachersList={availableTeachers} /> {/* PASS DYNAMIC LIST */}
              </div>
         )}
 
@@ -437,9 +449,9 @@ function App() {
                  <ResultsDashboard 
                     submissions={submissions}
                     categories={EVALUATION_DATA}
-                    // IMPORTANT FIX: If Public View, pass the actual teacher info caught from URL to initialize filter correctly
                     teacherInfo={isPublicView ? teacherInfo : dashboardTeacherInfo}
                     isPublicView={isPublicView}
+                    teachersList={availableTeachers} // PASS DYNAMIC LIST
                  />
              )}
           </div>

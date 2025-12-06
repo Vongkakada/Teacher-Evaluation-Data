@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { TEACHERS_LIST, TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
+import { TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
 import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers } from 'lucide-react';
 
-export const LinkGenerator: React.FC = () => {
+interface LinkGeneratorProps {
+    teachersList: string[];
+}
+
+export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList }) => {
   const [info, setInfo] = useState<TeacherInfo>(TEACHER_INFO_DEFAULT);
   const [generatedLink, setGeneratedLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -96,7 +100,7 @@ export const LinkGenerator: React.FC = () => {
             onChange={(e) => setInfo({...info, name: e.target.value})}
             className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
-            {TEACHERS_LIST.map(t => <option key={t} value={t}>{t}</option>)}
+            {teachersList.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>

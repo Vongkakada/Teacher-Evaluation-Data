@@ -59,6 +59,72 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   }
 };
 
+// --- NEW: Function to get Teachers List ---
+export const getTeachersFromSheet = async (): Promise<string[]> => {
+  if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
+    return [];
+  }
+
+  const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTeachers&t=${Date.now()}`;
+  
+  // Helper to safely parse and extract teacher names (Strings only)
+  const parseTeacherList = (data: any): string[] => {
+      if (!Array.isArray(data)) return [];
+
+      const teachers = data.map((item: any) => {
+          // If already a string
+          if (typeof item === 'string') return item.trim();
+          
+          // If object (fixes Error #31: objects with {Name, ...} keys)
+          if (typeof item === 'object' && item !== null) {
+              // Try common keys based on the error description and standard patterns
+              const name = item.Name || item.name || item.Teacher || item.teacher;
+              if (name && typeof name === 'string') return name.trim();
+              
+              // Fallback: Check values if keys don't match known patterns
+              const values = Object.values(item);
+              if (values.length > 0 && typeof values[0] === 'string') {
+                  return (values[0] as string).trim();
+              }
+          }
+          return "";
+      });
+
+      // Filter empty strings and deduplicate
+      return Array.from(new Set(teachers.filter(t => t.length > 0)));
+  };
+
+  try {
+     // Attempt direct fetch first
+     const response = await fetch(targetUrl, { method: 'GET', redirect: 'follow' });
+     if (response.ok) {
+        const data = await response.json();
+        const parsed = parseTeacherList(data);
+        if (parsed.length > 0) return parsed;
+     }
+  } catch (e) {
+      console.warn("Direct teacher fetch failed, trying proxy...", e);
+  }
+
+  // Fallback to proxy if CORS fails
+  try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      const proxyResponse = await fetch(proxyUrl);
+      if (proxyResponse.ok) {
+          const proxyData = await proxyResponse.json();
+          if (proxyData.contents) {
+              const data = JSON.parse(proxyData.contents);
+              const parsed = parseTeacherList(data);
+              if (parsed.length > 0) return parsed;
+          }
+      }
+  } catch (e) {
+      console.error("Failed to fetch teachers list", e);
+  }
+
+  return [];
+};
+
 export const getSubmissions = async (): Promise<Submission[]> => {
   if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     return getFromLocal();

@@ -3,13 +3,13 @@ import { Category, Submission, TeacherInfo } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar, Layers } from 'lucide-react';
 import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
-import { TEACHERS_LIST } from '../constants';
 
 interface ResultsDashboardProps {
   submissions: Submission[];
   categories: Category[];
   teacherInfo: TeacherInfo;
   isPublicView?: boolean;
+  teachersList: string[]; // NEW PROP
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -17,10 +17,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   categories,
   teacherInfo, // Initial teacher info from App.tsx (mostly empty or default in admin view)
   isPublicView = false,
+  teachersList
 }) => {
   
   // --- Filtering State ---
-  const [filterTeacher, setFilterTeacher] = useState(isPublicView ? teacherInfo.name : TEACHERS_LIST[0]);
+  // Default to passed teacherInfo name (if public) or first in dynamic list
+  const [filterTeacher, setFilterTeacher] = useState(
+      isPublicView ? teacherInfo.name : (teachersList.length > 0 ? teachersList[0] : '')
+  );
   const [filterTerm, setFilterTerm] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
   const [filterYear, setFilterYear] = useState('All');
@@ -249,7 +253,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterTeacher(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-gray-800"
                     >
-                        {TEACHERS_LIST.map(t => (
+                        {teachersList.map(t => (
                             <option key={t} value={t}>{t}</option>
                         ))}
                     </select>
