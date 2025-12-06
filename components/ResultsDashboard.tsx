@@ -558,24 +558,24 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             <div className="flex justify-between items-start text-center text-sm font-sans text-black leading-loose">
                 {/* Left */}
                 <div className="flex flex-col items-center">
-                    <p className="font-moul mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
+                    <p className="mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
                     <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
                     <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
-                    <p className="font-moul font-bold mt-2">ប្រធានការិយាល័យធានាគុណភាពអប់រំ</p>
+                    <p className="font-moul mt-2">ប្រធានការិយាល័យធានាគុណភាពអប់រំ</p>
                 </div>
 
                 {/* Right */}
                 <div className="flex flex-col items-center pt-8"> {/* pt-8 to offset the "Seen..." title */}
                     <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
                     <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
-                    <p className="font-moul font-bold mt-2">អ្នកស្រង់ទិន្នន័យ</p>
+                    <p className="font-moul mt-2">អ្នកស្រង់ទិន្នន័យ</p>
                 </div>
             </div>
 
             {/* Bottom Row: Director */}
             <div className="mt-16 text-center text-sm font-sans text-black leading-loose">
                 <p className="font-moul mb-4">បានត្រួតពិនិត្យ និងឯកភាព</p>
-                <p className="font-moul font-bold text-lg">នាយកសាខា</p>
+                <p className="font-moul text-lg">នាយកសាខា</p>
             </div>
         </div>
       </div>
