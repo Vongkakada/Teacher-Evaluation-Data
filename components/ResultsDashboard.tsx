@@ -431,12 +431,28 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         {/* Info Grid - Redesigned Layout */}
         <div className="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300 print:p-0">
            
-           {/* Row 1 */}
-           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
+           {/* Row 1: Teacher, Subject, Major, GPA */}
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
                <div>
                    <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះសាស្ត្រាចារ្យ (Teacher)</p>
                    <p className="text-sm sm:text-base font-bold text-gray-900 truncate" title={filterTeacher}>{filterTeacher}</p>
                </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">មុខវិជ្ជា (Subject)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentSubject}</p>
+               </div>
+               <div>
+                   <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
+                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentMajor}</p>
+               </div>
+               <div className="bg-white p-1 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
+                   <p className="text-gray-500 text-xs uppercase font-bold text-center">GPA</p>
+                   <p className="text-lg sm:text-xl font-bold text-purple-700 text-center">{gpa.toFixed(2)}</p>
+               </div>
+           </div>
+
+           {/* Row 2: Students, Shift, Year Level, Term, Date */}
+           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                <div>
                    <p className="text-gray-500 text-xs uppercase font-bold">ចំនួននិស្សិត (Students)</p>
                    <p className="text-sm sm:text-base font-bold text-blue-900">{totalStudents}</p>
@@ -453,27 +469,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                    <p className="text-gray-500 text-xs uppercase font-bold">វគ្គសិក្សា (Term)</p>
                    <p className="text-sm sm:text-base font-bold text-gray-900">{currentTerm}</p>
                </div>
-               <div className="bg-white p-1 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
-                   <p className="text-gray-500 text-xs uppercase font-bold text-center">GPA</p>
-                   <p className="text-lg sm:text-xl font-bold text-purple-700 text-center">{gpa.toFixed(2)}</p>
-               </div>
-           </div>
-
-           {/* Row 2 */}
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <div>
-                   <p className="text-gray-500 text-xs uppercase font-bold">មុខវិជ្ជា (Subject)</p>
-                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentSubject}</p>
-               </div>
-               <div>
-                   <p className="text-gray-500 text-xs uppercase font-bold">ឯកទេស (Major)</p>
-                   <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentMajor}</p>
-               </div>
-               <div>
-                   <p className="text-gray-500 text-xs uppercase font-bold">បន្ទប់ (Room)</p>
-                   <p className="text-sm sm:text-base font-bold text-gray-900">{currentRoom}</p>
-               </div>
-               <div>
+               <div className="md:col-span-1 col-span-2">
                    <p className="text-gray-500 text-xs uppercase font-bold">កាលបរិច្ឆេទ (Date)</p>
                    <p className="text-sm sm:text-base font-bold text-gray-900">{currentDate}</p>
                </div>
