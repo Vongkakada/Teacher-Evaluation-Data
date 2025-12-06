@@ -541,7 +541,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         {/* Legend */}
-        <div className="mt-6 text-sm text-gray-600 border border-gray-200 p-3 rounded bg-gray-50">
+        <div className="mt-6 text-sm text-gray-600 border border-gray-200 p-3 rounded bg-gray-50 break-inside-avoid">
             <div className="flex flex-wrap gap-4 items-center">
                 <span className="font-bold">សម្គាល់ (Legend):</span>
                 <span className="text-red-500 font-medium">A=90-100 (GPA 4.0)</span>
@@ -549,6 +549,33 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <span className="text-yellow-600 font-medium">C=65-79 (GPA 2.5)</span>
                 <span className="text-blue-500 font-medium">D=50-64 (GPA 1.5)</span>
                 <span className="text-gray-500 font-medium">E=&lt;50 (GPA 0.0)</span>
+            </div>
+        </div>
+
+        {/* SIGNATURE BLOCK */}
+        <div className="mt-12 break-inside-avoid print:block">
+            {/* Top Row: QAO Head and Data Collector */}
+            <div className="flex justify-between items-start text-center text-sm font-sans text-black leading-loose">
+                {/* Left */}
+                <div className="flex flex-col items-center">
+                    <p className="font-moul mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
+                    <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
+                    <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
+                    <p className="font-moul font-bold mt-2">ប្រធានការិយាល័យធានាគុណភាពអប់រំ</p>
+                </div>
+
+                {/* Right */}
+                <div className="flex flex-col items-center pt-8"> {/* pt-8 to offset the "Seen..." title */}
+                    <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
+                    <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
+                    <p className="font-moul font-bold mt-2">អ្នកស្រង់ទិន្នន័យ</p>
+                </div>
+            </div>
+
+            {/* Bottom Row: Director */}
+            <div className="mt-16 text-center text-sm font-sans text-black leading-loose">
+                <p className="font-moul mb-4">បានត្រួតពិនិត្យ និងឯកភាព</p>
+                <p className="font-moul font-bold text-lg">នាយកសាខា</p>
             </div>
         </div>
       </div>
