@@ -388,7 +388,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 print:shadow-none print:border-none">
         
         {/* Print Header */}
-        <div className="hidden print:flex flex-col items-center mb-8 border-b border-gray-300 pb-4">
+        <div className="hidden print:flex flex-col items-center mb-2 border-b border-gray-300 pb-4">
              <img src="/LOGO.png" alt="NUCK Logo" className="h-32 w-auto mb-2 object-contain" />
              <h1 className="text-xl font-moul text-black text-center">សាខាសាកលវិទ្យាល័យជាតិជាស៊ីមកំចាយមារ ខេត្តកំពង់ចាម</h1>
              <h2 className="text-sm font-bold text-gray-800 text-center uppercase tracking-wide">National University of Cheasim Kamchaymear, Kampong Cham Campus</h2>
