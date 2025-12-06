@@ -195,18 +195,31 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     // Map the raw sheet data to our App's Submission Interface
     const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
         
-        // 1. Parse Ratings
-        let parsedRatings: Record<string, number> = {};
-        const ratingString = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
+        // 1. Parse Ratings with Smart Swap Detection
+        // GAS Code Bug: The GAS code provided swaps "Ratings (JSON)" and "Comment".
+        // Ratings (JSON) column gets the Comment Text. Comment column gets the JSON string.
+        let rawRatings = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
+        let rawComment = row['Comment'] || row['comment'] || '';
         
-        if (typeof ratingString === 'string' && ratingString.trim() !== '') {
+        let parsedRatings: Record<string, number> = {};
+
+        // Heuristic: If 'Ratings' column looks like plain text and 'Comment' column looks like JSON, swap them.
+        if (typeof rawRatings === 'string' && !rawRatings.trim().startsWith('{') && rawRatings.trim() !== '' &&
+            typeof rawComment === 'string' && rawComment.trim().startsWith('{')) {
+             console.warn("Detected swapped columns (Ratings/Comment). Auto-fixing...");
+             const temp = rawRatings;
+             rawRatings = rawComment;
+             rawComment = temp;
+        }
+
+        if (typeof rawRatings === 'string' && rawRatings.trim() !== '') {
             try {
-                parsedRatings = JSON.parse(ratingString);
+                parsedRatings = JSON.parse(rawRatings);
             } catch (e) {
                 console.warn("Failed to parse ratings JSON for row:", row['ID'], e);
             }
-        } else if (typeof ratingString === 'object') {
-            parsedRatings = ratingString;
+        } else if (typeof rawRatings === 'object') {
+            parsedRatings = rawRatings;
         }
 
         // 2. Parse Timestamp
@@ -224,7 +237,7 @@ export const getSubmissions = async (): Promise<Submission[]> => {
             yearLevel: (row['Year Level'] || row['yearLevel'] || row['year'] || '').toString(),
             room: row['Room'] || row['room'],
             shift: row['Shift'] || row['shift'],
-            comment: row['Comment'] || row['comment'] || '',
+            comment: rawComment || '', // Use the correctly identified comment
             ratings: parsedRatings
         };
     }) : [];

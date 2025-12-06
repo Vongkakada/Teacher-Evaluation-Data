@@ -98,7 +98,6 @@ export const EVALUATION_DATA: Category[] = [
     id: 'communication',
     title: '៤. ទំនាក់ទំនងជាមួយនិស្សិត (Interaction with Students)',
     questions: [
-      { id: 'q16', text: 'មានទំនាក់ទំនងល្អជាមួយនិស្សិត'},
       { id: 'q17', text: 'ការបើកឱកាសឱ្យនិស្សិតសួរ ឬបញ្ចេញមតិយោបល់' },
       { id: 'q18', text: 'ការទទួលយកសំណូមពរ និងការរិះគន់ក្នុងន័យស្ថាបនា' },
     ],
