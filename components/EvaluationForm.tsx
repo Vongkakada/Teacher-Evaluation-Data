@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Category, Submission, TeacherInfo, RatingValue } from '../types';
 import { RATING_LABELS, RATING_LETTERS } from '../constants';
 import { StarRating } from './StarRating';
-import { Send, AlertCircle, CheckCircle2, Loader2, Info, Star } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle2, Loader2, Info, Star, Heart, CheckCircle, RotateCcw } from 'lucide-react';
 
 interface EvaluationFormProps {
   teacherInfo: TeacherInfo;
@@ -24,6 +24,7 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false); // New state for success view
   
   // Calculate total questions
   const totalQuestions = categories.reduce((acc, cat) => acc + cat.questions.length, 0);
@@ -56,11 +57,65 @@ export const EvaluationForm: React.FC<EvaluationFormProps> = ({
     await onSubmit(submission);
     
     setIsSubmitting(false);
-    setRatings({});
-    setComment('');
+    setIsSubmitted(true); // Show Thank You page
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // --- RENDER THANK YOU PAGE IF SUBMITTED ---
+  if (isSubmitted) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 animate-fade-in text-center">
+        
+        {/* Animated Icon */}
+        <div className="mb-6 relative">
+            <div className="absolute inset-0 bg-green-200 rounded-full animate-ping opacity-25"></div>
+            <div className="bg-green-100 p-6 rounded-full relative z-10">
+                <CheckCircle className="w-24 h-24 text-green-600" strokeWidth={1.5} />
+            </div>
+        </div>
+
+        <h1 className="text-2xl sm:text-3xl font-moul text-green-700 mb-4 leading-relaxed">
+            សូមអរគុណសម្រាប់ការវាយតម្លៃ!
+        </h1>
+        
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-md w-full mb-8">
+             <div className="flex justify-center mb-3">
+                <Heart className="w-10 h-10 text-red-500 fill-red-500 animate-pulse" />
+             </div>
+             <h2 className="text-xl font-bold text-gray-800 mb-2">Thank You!</h2>
+             <p className="text-gray-600">
+                ការចូលរួមរបស់អ្នកពិតជាមានតម្លៃសម្រាប់ការអភិវឌ្ឍគុណភាពអប់រំ។
+             </p>
+             <p className="text-sm text-gray-500 mt-2">
+                Your feedback is valuable for improving our education quality.
+             </p>
+        </div>
+
+        {/* Info Summary Card */}
+        <div className="bg-blue-50 p-4 rounded-lg text-sm text-gray-600 max-w-md w-full border border-blue-100 mb-8">
+            <div className="flex justify-between border-b border-blue-200 pb-2 mb-2">
+                <span>សាស្ត្រាចារ្យ (Teacher):</span>
+                <span className="font-bold text-blue-900">{teacherInfo.name}</span>
+            </div>
+            <div className="flex justify-between">
+                <span>កាលបរិច្ឆេទ (Date):</span>
+                <span>{new Date().toLocaleDateString('km-KH')}</span>
+            </div>
+        </div>
+
+        <button 
+            onClick={() => window.location.reload()} 
+            className="flex items-center gap-2 px-6 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-all shadow-md"
+        >
+            <RotateCcw size={18} />
+            <span>វាយតម្លៃម្តងទៀត (Reload)</span>
+        </button>
+
+      </div>
+    );
+  }
+
+  // --- RENDER FORM ---
   return (
     <div className="max-w-3xl mx-auto pb-32">
       {/* Header Info Card */}
