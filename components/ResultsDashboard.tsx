@@ -190,14 +190,16 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
     };
   });
 
-  const finalScore = questionStats.reduce((acc, cat) => acc + cat.subtotal, 0) / questionStats.length;
+  const finalPercentage = questionStats.reduce((acc, cat) => acc + cat.subtotal, 0) / questionStats.length;
+  // Convert Percentage to 5.0 Scale for Display
+  const finalAverage = (finalPercentage / 100) * 5;
   
   // Calculate Grade
   let finalGrade = 'E';
-  if (finalScore >= 90) finalGrade = 'A';
-  else if (finalScore >= 80) finalGrade = 'B';
-  else if (finalScore >= 65) finalGrade = 'C';
-  else if (finalScore >= 50) finalGrade = 'D';
+  if (finalPercentage >= 90) finalGrade = 'A';
+  else if (finalPercentage >= 80) finalGrade = 'B';
+  else if (finalPercentage >= 65) finalGrade = 'C';
+  else if (finalPercentage >= 50) finalGrade = 'D';
 
   const chartData = questionStats.map(c => ({
     name: c.title.split('(')[0],
@@ -221,9 +223,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
          }
      });
 
-     const average = totalVotes > 0 ? (sum / (totalVotes * 5)) * 100 : 0;
+     // Calculate Mean (1-5 Scale)
+     const mean = totalVotes > 0 ? sum / totalVotes : 0;
 
-     return { counts, totalVotes, average };
+     return { counts, totalVotes, mean };
   };
 
   return (
@@ -437,10 +440,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </div>
         </div>
 
-        {/* Info Grid - Updated with Team, Removed GPA */}
+        {/* Info Grid */}
         <div className="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300 print:p-0">
            
-           {/* Row 1: Teacher, Subject, Major, Team (replaces GPA) */}
+           {/* Row 1: Teacher, Subject, Major, Team */}
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
                <div>
                    <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះសាស្ត្រាចារ្យ (Teacher)</p>
@@ -455,7 +458,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                    <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentMajor}</p>
                </div>
                <div className="bg-white p-1 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
-                   {/* Replaced GPA with Team Name */}
                    <p className="text-gray-500 text-xs uppercase font-bold text-center">ឈ្មោះក្រុម (Team)</p>
                    <p className="text-lg sm:text-xl font-bold text-teal-700 text-center">{currentTeam}</p>
                </div>
@@ -486,71 +488,67 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            </div>
         </div>
 
-        {/* --- RESTORED EVALUATION TABLE WITH SCORE AND TOTAL (Removing Result and Grade) --- */}
+        {/* --- DETAILED EVALUATION TABLE --- */}
         <div className="overflow-x-auto mb-8">
             <table className="w-full border-collapse border border-gray-300 text-sm font-sans">
               <thead>
                 <tr className="bg-gray-100 text-center font-bold text-gray-700">
                   <th className="border border-gray-300 p-2 w-10">ល.រ</th>
                   <th className="border border-gray-300 p-2 text-left">ខ្លឹមសារសំណួរ (Indicators)</th>
-                  <th className="border border-gray-300 p-2 w-10" title="Strongly Agree">A</th>
-                  <th className="border border-gray-300 p-2 w-10" title="Agree">B</th>
-                  <th className="border border-gray-300 p-2 w-10" title="Neutral">C</th>
-                  <th className="border border-gray-300 p-2 w-10" title="Disagree">D</th>
+                  {/* Swapped order: E D C B A */}
                   <th className="border border-gray-300 p-2 w-10" title="Strongly Disagree">E</th>
-                  <th className="border border-gray-300 p-2 w-16">Score</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Disagree">D</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Neutral">C</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Agree">B</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Strongly Agree">A</th>
                   <th className="border border-gray-300 p-2 w-16">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {categories.map((category) => (
                   <React.Fragment key={category.id}>
+                    {/* Category Header Row */}
                     <tr className="bg-blue-50 font-bold">
-                      <td className="border border-gray-300 p-2 text-center text-gray-700 bg-gray-200" colSpan={9}>
+                      <td className="border border-gray-300 p-2 text-center text-gray-700 bg-gray-200" colSpan={8}>
                         {category.title}
                       </td>
                     </tr>
                     {category.questions.map((q, index) => {
-                      const { counts, totalVotes, average } = getQuestionDetailStats(q.id);
+                      const { counts, totalVotes, mean } = getQuestionDetailStats(q.id);
                       return (
                         <tr key={q.id} className="hover:bg-gray-50">
                            <td className="border border-gray-300 p-2 text-center text-gray-500">{index + 1}</td>
                            <td className="border border-gray-300 p-2">{q.text}</td>
-                           <td className="border border-gray-300 p-2 text-center">{counts[5] || '-'}</td>
-                           <td className="border border-gray-300 p-2 text-center">{counts[4] || '-'}</td>
-                           <td className="border border-gray-300 p-2 text-center">{counts[3] || '-'}</td>
-                           <td className="border border-gray-300 p-2 text-center">{counts[2] || '-'}</td>
+                           {/* Swapped Counts: 1 2 3 4 5 */}
                            <td className="border border-gray-300 p-2 text-center">{counts[1] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[2] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[3] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[4] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[5] || '-'}</td>
+                           {/* Total Column = Average (Mean 1-5) */}
                            <td className="border border-gray-300 p-2 text-center font-bold text-blue-600">
-                                {totalVotes > 0 ? average.toFixed(2) : '-'}
-                           </td>
-                           <td className="border border-gray-300 p-2 text-center font-bold">
-                                {totalVotes > 0 ? totalVotes : '-'}
+                                {totalVotes > 0 ? mean.toFixed(2) : '-'}
                            </td>
                         </tr>
                       );
                     })}
                   </React.Fragment>
                 ))}
+                {/* Grand Total Row (Footer) */}
+                <tr className="bg-teal-50 font-bold border-t-2 border-teal-500">
+                    <td className="border border-gray-300 p-3 text-right text-teal-800 font-moul" colSpan={7}>
+                        លទ្ធផលសរុប (Total Grade)
+                    </td>
+                    <td className="border border-gray-300 p-3 text-center text-lg text-teal-700">
+                        {finalAverage.toFixed(2)} ({finalGrade})
+                    </td>
+                </tr>
               </tbody>
             </table>
         </div>
         {/* --- END TABLE --- */}
 
-        {/* Final Grade Summary Card */}
-        <div className="flex justify-center my-8">
-            <div className="bg-teal-50 border-2 border-teal-500 rounded-xl p-8 text-center shadow-lg transform hover:scale-105 transition-transform max-w-sm w-full">
-                <h3 className="text-teal-800 font-moul text-xl mb-2">លទ្ធផលសរុប (Total Grade)</h3>
-                <div className="text-6xl font-black text-teal-600 mb-2">{finalGrade}</div>
-                <div className="text-lg text-gray-600 font-medium">Score: {finalScore.toFixed(2)}</div>
-                
-                {/* Grade Legend inline */}
-                <div className="mt-4 pt-4 border-t border-teal-200 text-xs text-gray-500">
-                     A (90-100) | B (80-89) | C (65-79) | D (50-64) | E (&lt;50)
-                </div>
-            </div>
-        </div>
-
+        {/* Removed Separate Final Grade Summary Card */}
 
         {/* SIGNATURE BLOCK */}
         <div className="mt-10 break-inside-avoid print:block">
