@@ -64,8 +64,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const currentDate = firstSub ? new Date(firstSub.timestamp).toLocaleDateString('km-KH') : '-';
   
   // Logic for Current Team Display:
-  // Strictly use the Team from the submission data (Column 'Team' in Sheet).
-  // Do NOT fallback to teachersList, as the historical data might differ.
   const currentTeam = firstSub?.team || '-';
 
   // --- Share Link Logic ---
@@ -207,6 +205,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  // Helper to count ratings for the table
+  const getRatingCounts = (questionId: string) => {
+     const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+     filteredSubmissions.forEach(sub => {
+         const val = sub.ratings[questionId];
+         if (val >= 1 && val <= 5) {
+             counts[val as 1|2|3|4|5]++;
+         }
+     });
+     return counts;
+  };
 
   return (
     <div className="space-y-6 pb-20 print:p-0 print:space-y-4">
@@ -468,7 +478,55 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            </div>
         </div>
 
-        {/* Removed Detailed Table. Replaced with Final Grade Summary Card */}
+        {/* --- RESTORED EVALUATION TABLE (Without Result/Grade columns) --- */}
+        <div className="overflow-x-auto mb-8">
+            <table className="w-full border-collapse border border-gray-300 text-sm font-sans">
+              <thead>
+                <tr className="bg-gray-100 text-center font-bold text-gray-700">
+                  <th className="border border-gray-300 p-2 w-10">ល.រ</th>
+                  <th className="border border-gray-300 p-2 text-left">ខ្លឹមសារសំណួរ (Criteria)</th>
+                  <th className="border border-gray-300 p-2" colSpan={5}>កម្រិតវាយតម្លៃ (Rating Count)</th>
+                </tr>
+                <tr className="bg-gray-50 text-center text-xs text-gray-600">
+                   <th className="border border-gray-300 p-1"></th>
+                   <th className="border border-gray-300 p-1"></th>
+                   <th className="border border-gray-300 p-1 w-12" title="Strongly Agree">5</th>
+                   <th className="border border-gray-300 p-1 w-12" title="Agree">4</th>
+                   <th className="border border-gray-300 p-1 w-12" title="Neutral">3</th>
+                   <th className="border border-gray-300 p-1 w-12" title="Disagree">2</th>
+                   <th className="border border-gray-300 p-1 w-12" title="Strongly Disagree">1</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map((category) => (
+                  <React.Fragment key={category.id}>
+                    <tr className="bg-blue-50 font-bold">
+                      <td className="border border-gray-300 p-2 text-center" colSpan={7}>
+                        {category.title}
+                      </td>
+                    </tr>
+                    {category.questions.map((q, index) => {
+                      const counts = getRatingCounts(q.id);
+                      return (
+                        <tr key={q.id} className="hover:bg-gray-50">
+                           <td className="border border-gray-300 p-2 text-center text-gray-500">{index + 1}</td>
+                           <td className="border border-gray-300 p-2">{q.text}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[5] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[4] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[3] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[2] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center">{counts[1] || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+        </div>
+        {/* --- END TABLE --- */}
+
+        {/* Final Grade Summary Card */}
         <div className="flex justify-center my-8">
             <div className="bg-teal-50 border-2 border-teal-500 rounded-xl p-8 text-center shadow-lg transform hover:scale-105 transition-transform max-w-sm w-full">
                 <h3 className="text-teal-800 font-moul text-xl mb-2">លទ្ធផលសរុប (Total Grade)</h3>
