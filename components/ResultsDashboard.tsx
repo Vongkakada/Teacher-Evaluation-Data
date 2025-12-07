@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, Submission, TeacherInfo, Teacher } from '../types';
+import { Category, Submission, TeacherInfo } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar, Layers, Users } from 'lucide-react';
 import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
@@ -9,7 +9,7 @@ interface ResultsDashboardProps {
   categories: Category[];
   teacherInfo: TeacherInfo;
   isPublicView?: boolean;
-  teachersList: Teacher[];
+  teachersList: string[]; // Changed from Teacher[] to string[]
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -23,7 +23,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   // --- Filtering State ---
   // Default to passed teacherInfo name (if public) or first in dynamic list
   const [filterTeacher, setFilterTeacher] = useState(
-      isPublicView ? teacherInfo.name : (teachersList.length > 0 ? teachersList[0].name : '')
+      isPublicView ? teacherInfo.name : (teachersList.length > 0 ? teachersList[0] : '')
   );
   const [filterTerm, setFilterTerm] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
@@ -163,56 +163,52 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   };
   // ------------------------
 
-  // Calculate Stats per question
-  let grandTotalScore = 0;
-  let totalMaxScore = 0;
-
+  // Calculate Stats per question and category
   const questionStats = categories.map(cat => {
     const qStats = cat.questions.map(q => {
       let sum = 0;
+      let count = 0;
       filteredSubmissions.forEach(sub => {
         const rating = sub.ratings[q.id] || 0;
         if (rating > 0) {
           sum += rating;
+          count++;
         }
       });
-      const maxPossible = totalStudents * 5;
-      const percentage = maxPossible > 0 ? (sum / maxPossible) * 100 : 0;
-      return { percentage };
+      // Calculate mean (1-5)
+      const mean = count > 0 ? sum / count : 0;
+      return { mean };
     });
 
-    const categorySumPct = qStats.reduce((acc, curr) => acc + curr.percentage, 0);
-    const categoryAvgPct = qStats.length > 0 ? categorySumPct / qStats.length : 0;
+    // Average of questions in this category
+    const categorySumMean = qStats.reduce((acc, curr) => acc + curr.mean, 0);
+    const categoryAvg = qStats.length > 0 ? categorySumMean / qStats.length : 0;
     
     return {
       title: cat.title,
-      subtotal: categoryAvgPct,
+      subtotal: categoryAvg,
     };
   });
 
-  const finalPercentage = questionStats.reduce((acc, cat) => acc + cat.subtotal, 0) / questionStats.length;
-  // Convert Percentage to 5.0 Scale for Display
-  const finalAverage = (finalPercentage / 100) * 5;
+  // Final Average is the average of the 5 category averages
+  const finalAverage = questionStats.reduce((acc, cat) => acc + cat.subtotal, 0) / questionStats.length;
   
-  // Calculate Grade
-  let finalGrade = 'E';
-  if (finalPercentage >= 90) finalGrade = 'A';
-  else if (finalPercentage >= 80) finalGrade = 'B';
-  else if (finalPercentage >= 65) finalGrade = 'C';
-  else if (finalPercentage >= 50) finalGrade = 'D';
+  // Calculate Grade based on Final Average (1-5 scale mapped to %)
+  // Assuming 5.0 = 100%
+  const finalPercentage = (finalAverage / 5) * 100;
 
   const chartData = questionStats.map(c => ({
     name: c.title.split('(')[0],
-    score: c.subtotal
+    score: (c.subtotal / 5) * 100 // Convert back to 0-100 for chart
   }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-  // Helper to count ratings for the table
+  // Helper to count ratings and calculate weighted totals for the table
   const getQuestionDetailStats = (questionId: string) => {
      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-     let sum = 0;
      let totalVotes = 0;
+     let sum = 0;
 
      filteredSubmissions.forEach(sub => {
          const val = sub.ratings[questionId];
@@ -223,10 +219,19 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
          }
      });
 
-     // Calculate Mean (1-5 Scale)
      const mean = totalVotes > 0 ? sum / totalVotes : 0;
+     const percentageScore = (mean / 5) * 100;
 
-     return { counts, totalVotes, mean };
+     return { counts, totalVotes, mean, percentageScore };
+  };
+
+  // Helper to determine Grade Letter
+  const getGrade = (score: number) => {
+    if (score >= 90) return 'A';
+    if (score >= 80) return 'B';
+    if (score >= 65) return 'C';
+    if (score >= 50) return 'D';
+    return 'E';
   };
 
   return (
@@ -248,8 +253,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterTeacher(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-gray-800"
                     >
-                        {teachersList.map(t => (
-                            <option key={t.name} value={t.name}>{t.name}</option>
+                        {teachersList.map(name => (
+                            <option key={name} value={name}>{name}</option>
                         ))}
                     </select>
                 </div>
@@ -489,66 +494,108 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         </div>
 
         {/* --- DETAILED EVALUATION TABLE --- */}
-        <div className="overflow-x-auto mb-8">
+        <div className="overflow-x-auto mb-4">
             <table className="w-full border-collapse border border-gray-300 text-sm font-sans">
               <thead>
                 <tr className="bg-gray-100 text-center font-bold text-gray-700">
                   <th className="border border-gray-300 p-2 w-10">ល.រ</th>
                   <th className="border border-gray-300 p-2 text-left">ខ្លឹមសារសំណួរ (Indicators)</th>
-                  {/* Swapped order: E D C B A */}
+                  {/* Reordered: E D C B A */}
                   <th className="border border-gray-300 p-2 w-10" title="Strongly Disagree">E</th>
                   <th className="border border-gray-300 p-2 w-10" title="Disagree">D</th>
                   <th className="border border-gray-300 p-2 w-10" title="Neutral">C</th>
                   <th className="border border-gray-300 p-2 w-10" title="Agree">B</th>
                   <th className="border border-gray-300 p-2 w-10" title="Strongly Agree">A</th>
-                  <th className="border border-gray-300 p-2 w-16">Total</th>
+                  {/* Score per Question & Merged Total per Category */}
+                  <th className="border border-gray-300 p-2 w-20">Score</th>
+                  <th className="border border-gray-300 p-2 w-24">Total</th>
+                  {/* Grade column REMOVED from Body */}
                 </tr>
               </thead>
               <tbody>
-                {categories.map((category) => (
+                {categories.map((category) => {
+                   // Calculate category average score for merged column
+                   const catStat = questionStats.find(qs => qs.title === category.title);
+                   const categoryPercentage = catStat ? (catStat.subtotal / 5) * 100 : 0;
+                   // const grade = getGrade(categoryPercentage); // Grade not needed in body
+                   
+                   return (
                   <React.Fragment key={category.id}>
                     {/* Category Header Row */}
                     <tr className="bg-blue-50 font-bold">
-                      <td className="border border-gray-300 p-2 text-center text-gray-700 bg-gray-200" colSpan={8}>
+                      <td className="border border-gray-300 p-2 text-center text-gray-700 bg-gray-200" colSpan={9}>
                         {category.title}
                       </td>
                     </tr>
                     {category.questions.map((q, index) => {
-                      const { counts, totalVotes, mean } = getQuestionDetailStats(q.id);
+                      const { counts, totalVotes, percentageScore } = getQuestionDetailStats(q.id);
+                      
                       return (
                         <tr key={q.id} className="hover:bg-gray-50">
                            <td className="border border-gray-300 p-2 text-center text-gray-500">{index + 1}</td>
                            <td className="border border-gray-300 p-2">{q.text}</td>
-                           {/* Swapped Counts: 1 2 3 4 5 */}
+                           {/* Counts Reordered: E(1), D(2), C(3), B(4), A(5) */}
                            <td className="border border-gray-300 p-2 text-center">{counts[1] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[2] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[3] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[4] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[5] || '-'}</td>
-                           {/* Total Column = Average (Mean 1-5) */}
+                           
+                           {/* Score per question (Percentage) */}
                            <td className="border border-gray-300 p-2 text-center font-bold text-blue-600">
-                                {totalVotes > 0 ? mean.toFixed(2) : '-'}
+                                {totalVotes > 0 ? percentageScore.toFixed(2) : '-'}
                            </td>
+                           
+                           {/* MERGED TOTAL COLUMN (Category Score) - Middle Alignment */}
+                           {index === 0 && (
+                               <td 
+                                 className="border border-gray-300 p-0 text-center font-bold align-middle bg-white" 
+                                 rowSpan={category.questions.length} // Span all questions in this category
+                                 style={{ verticalAlign: 'middle' }}
+                               >
+                                   <div className="text-base text-teal-700 font-bold sticky top-1/2">
+                                       {categoryPercentage.toFixed(2)}
+                                   </div>
+                               </td>
+                           )}
                         </tr>
                       );
                     })}
                   </React.Fragment>
-                ))}
+                );
+                })}
                 {/* Grand Total Row (Footer) */}
                 <tr className="bg-teal-50 font-bold border-t-2 border-teal-500">
+                    {/* Colspan 7: No, Ind, E, D, C, B, A */}
                     <td className="border border-gray-300 p-3 text-right text-teal-800 font-moul" colSpan={7}>
-                        លទ្ធផលសរុប (Total Grade)
+                        Total Score
                     </td>
+                    {/* Score Column: Show Total Score Value */}
                     <td className="border border-gray-300 p-3 text-center text-lg text-teal-700">
-                        {finalAverage.toFixed(2)} ({finalGrade})
+                        {finalPercentage.toFixed(2)}
+                    </td>
+                    {/* Total Column: Show Grade */}
+                    <td className="border border-gray-300 p-3 text-center text-lg text-black bg-yellow-100">
+                       {getGrade(finalPercentage)}
                     </td>
                 </tr>
               </tbody>
             </table>
         </div>
-        {/* --- END TABLE --- */}
 
-        {/* Removed Separate Final Grade Summary Card */}
+        {/* --- LEGEND (New) --- */}
+        <div className="mb-8 border border-gray-200 rounded p-4 bg-white shadow-sm">
+             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold">
+                <span className="font-moul text-gray-800">សម្គាល់ (Legend):</span>
+                <span className="text-red-500">A=90-100</span>
+                <span className="text-orange-500">B=80-89</span>
+                <span className="text-yellow-600">C=65-79</span>
+                <span className="text-blue-600">D=50-64</span>
+                <span className="text-gray-600">E=&lt;50</span>
+             </div>
+        </div>
+
+        {/* --- END TABLE --- */}
 
         {/* SIGNATURE BLOCK */}
         <div className="mt-10 break-inside-avoid print:block">
