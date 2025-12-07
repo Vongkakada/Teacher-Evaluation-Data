@@ -4,8 +4,8 @@ import { ResultsDashboard } from './components/ResultsDashboard';
 import { LinkGenerator } from './components/LinkGenerator';
 import { LoginForm } from './components/LoginForm'; // Import Login Form
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
-import { Submission, TeacherInfo, Teacher } from './types';
-import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus, getTeachersFromSheet } from './services/storage';
+import { Submission, TeacherInfo } from './types';
+import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus, getTeachersFromSheet, getTeamsFromSheet } from './services/storage';
 import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban, Timer } from 'lucide-react';
 
 function App() {
@@ -13,10 +13,11 @@ function App() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
-  // Dynamic Teacher List State (Initialized with Default as objects)
-  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>(
-      TEACHERS_LIST.map(name => ({ name, team: 'Unknown' }))
-  );
+  // Dynamic Teacher List State (Simple String Array)
+  const [availableTeachers, setAvailableTeachers] = useState<string[]>(TEACHERS_LIST);
+  
+  // Dynamic Teams List State (Simple String Array)
+  const [availableTeams, setAvailableTeams] = useState<string[]>([]);
 
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,12 +44,20 @@ function App() {
     setIsLoadingData(false);
   };
   
-  // Function to fetch latest teacher list from Sheet
-  const fetchTeachers = async () => {
+  // Function to fetch latest teacher list and teams from Sheet
+  const fetchTeachersAndTeams = async () => {
+      // Fetch Teachers (Returns string[])
       const teachers = await getTeachersFromSheet();
       if (teachers && teachers.length > 0) {
           console.log("Updated teachers list from sheet:", teachers);
           setAvailableTeachers(teachers);
+      }
+      
+      // Fetch Teams (Returns string[])
+      const teams = await getTeamsFromSheet();
+      if (teams && teams.length > 0) {
+          console.log("Updated teams list from sheet:", teams);
+          setAvailableTeams(teams.sort());
       }
   };
 
@@ -118,9 +127,9 @@ function App() {
       setView('form');
     }
 
-    // 2. Fetch Teacher List in background (for Generator/Form Dropdowns)
+    // 2. Fetch Teacher List & Team List in background (for Generator/Form Dropdowns)
     // We do this regardless of view so the data is ready if they switch views
-    fetchTeachers();
+    fetchTeachersAndTeams();
 
   }, []);
 
@@ -341,7 +350,7 @@ function App() {
              </div>
             <EvaluationForm
               teacherInfo={teacherInfo}
-              teachers={availableTeachers.map(t => t.name)} // Pass only names to form
+              teachers={availableTeachers} // Pass string array directly
               onTeacherChange={(name) => setTeacherInfo({...teacherInfo, name})}
               categories={EVALUATION_DATA}
               onSubmit={handleSubmission}
@@ -353,8 +362,9 @@ function App() {
         {view === 'generator' && !isReadOnlyMode && !isPublicView && isLoggedIn && (
              <div className="animate-fade-in">
                  <LinkGenerator 
-                    teachersList={availableTeachers} // PASS OBJECT LIST
-                    onRefreshTeachers={fetchTeachers} 
+                    teachersList={availableTeachers} // Pass string array
+                    teamsList={availableTeams} // Pass string array
+                    onRefreshTeachers={fetchTeachersAndTeams} 
                  /> 
              </div>
         )}
@@ -394,7 +404,7 @@ function App() {
                     categories={EVALUATION_DATA}
                     teacherInfo={isPublicView ? teacherInfo : dashboardTeacherInfo}
                     isPublicView={isPublicView}
-                    teachersList={availableTeachers} // PASS OBJECT LIST
+                    teachersList={availableTeachers} // Pass string array
                  />
              )}
           </div>
