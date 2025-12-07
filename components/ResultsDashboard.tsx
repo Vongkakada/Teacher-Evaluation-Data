@@ -207,15 +207,23 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
   // Helper to count ratings for the table
-  const getRatingCounts = (questionId: string) => {
+  const getQuestionDetailStats = (questionId: string) => {
      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+     let sum = 0;
+     let totalVotes = 0;
+
      filteredSubmissions.forEach(sub => {
          const val = sub.ratings[questionId];
          if (val >= 1 && val <= 5) {
              counts[val as 1|2|3|4|5]++;
+             sum += val;
+             totalVotes++;
          }
      });
-     return counts;
+
+     const average = totalVotes > 0 ? (sum / (totalVotes * 5)) * 100 : 0;
+
+     return { counts, totalVotes, average };
   };
 
   return (
@@ -478,35 +486,32 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            </div>
         </div>
 
-        {/* --- RESTORED EVALUATION TABLE (Without Result/Grade columns) --- */}
+        {/* --- RESTORED EVALUATION TABLE WITH SCORE AND TOTAL (Removing Result and Grade) --- */}
         <div className="overflow-x-auto mb-8">
             <table className="w-full border-collapse border border-gray-300 text-sm font-sans">
               <thead>
                 <tr className="bg-gray-100 text-center font-bold text-gray-700">
                   <th className="border border-gray-300 p-2 w-10">ល.រ</th>
-                  <th className="border border-gray-300 p-2 text-left">ខ្លឹមសារសំណួរ (Criteria)</th>
-                  <th className="border border-gray-300 p-2" colSpan={5}>កម្រិតវាយតម្លៃ (Rating Count)</th>
-                </tr>
-                <tr className="bg-gray-50 text-center text-xs text-gray-600">
-                   <th className="border border-gray-300 p-1"></th>
-                   <th className="border border-gray-300 p-1"></th>
-                   <th className="border border-gray-300 p-1 w-12" title="Strongly Agree">5</th>
-                   <th className="border border-gray-300 p-1 w-12" title="Agree">4</th>
-                   <th className="border border-gray-300 p-1 w-12" title="Neutral">3</th>
-                   <th className="border border-gray-300 p-1 w-12" title="Disagree">2</th>
-                   <th className="border border-gray-300 p-1 w-12" title="Strongly Disagree">1</th>
+                  <th className="border border-gray-300 p-2 text-left">ខ្លឹមសារសំណួរ (Indicators)</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Strongly Agree">A</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Agree">B</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Neutral">C</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Disagree">D</th>
+                  <th className="border border-gray-300 p-2 w-10" title="Strongly Disagree">E</th>
+                  <th className="border border-gray-300 p-2 w-16">Score</th>
+                  <th className="border border-gray-300 p-2 w-16">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {categories.map((category) => (
                   <React.Fragment key={category.id}>
                     <tr className="bg-blue-50 font-bold">
-                      <td className="border border-gray-300 p-2 text-center" colSpan={7}>
+                      <td className="border border-gray-300 p-2 text-center text-gray-700 bg-gray-200" colSpan={9}>
                         {category.title}
                       </td>
                     </tr>
                     {category.questions.map((q, index) => {
-                      const counts = getRatingCounts(q.id);
+                      const { counts, totalVotes, average } = getQuestionDetailStats(q.id);
                       return (
                         <tr key={q.id} className="hover:bg-gray-50">
                            <td className="border border-gray-300 p-2 text-center text-gray-500">{index + 1}</td>
@@ -516,6 +521,12 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                            <td className="border border-gray-300 p-2 text-center">{counts[3] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[2] || '-'}</td>
                            <td className="border border-gray-300 p-2 text-center">{counts[1] || '-'}</td>
+                           <td className="border border-gray-300 p-2 text-center font-bold text-blue-600">
+                                {totalVotes > 0 ? average.toFixed(2) : '-'}
+                           </td>
+                           <td className="border border-gray-300 p-2 text-center font-bold">
+                                {totalVotes > 0 ? totalVotes : '-'}
+                           </td>
                         </tr>
                       );
                     })}
