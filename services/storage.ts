@@ -61,38 +61,13 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   }
 };
 
-// --- Function to get Teachers List from Sheet (Column A=Name, Column B=Team) ---
-export const getTeachersFromSheet = async (): Promise<Teacher[]> => {
+// --- Function to get Teachers List (Returns string[]) ---
+export const getTeachersFromSheet = async (): Promise<string[]> => {
   if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     return [];
   }
 
   const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTeachers&t=${Date.now()}`;
-  
-  // Helper to parse diverse data formats from GAS
-  const parseTeacherData = (data: any[]): Teacher[] => {
-      return data.map((item: any) => {
-          // Format 1: Array of values [Name, Team, ...] (from range.getValues())
-          if (Array.isArray(item)) {
-              return {
-                  name: item[0]?.toString().trim() || '',
-                  team: item[1]?.toString().trim() || 'General' // Column B is Team
-              };
-          }
-          // Format 2: Object { name: "...", team: "..." }
-          else if (typeof item === 'object' && item.name) {
-              return { 
-                  name: item.name.trim(), 
-                  team: item.team ? item.team.trim() : 'General' 
-              };
-          }
-          // Format 3: Simple String "Name"
-          else if (typeof item === 'string') {
-               return { name: item.trim(), team: 'General' };
-          }
-          return null;
-      }).filter((t): t is Teacher => t !== null && t.name.length > 0);
-  };
 
   try {
      console.log("Fetching teachers from:", targetUrl);
@@ -100,29 +75,78 @@ export const getTeachersFromSheet = async (): Promise<Teacher[]> => {
      
      if (response.ok) {
         const data = await response.json();
+        // The GAS returns a simple array of strings: ["Name1", "Name2"]
         if (Array.isArray(data)) {
-            return parseTeacherData(data);
+            return data.map(item => item.toString().trim()).filter(n => n.length > 0);
         }
      }
   } catch (e) {
       console.warn("Direct teacher fetch failed, trying proxy...", e);
-  }
-
-  // Fallback to proxy logic
-  try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      const proxyResponse = await fetch(proxyUrl);
-      if (proxyResponse.ok) {
-          const proxyData = await proxyResponse.json();
-          if (proxyData.contents) {
-              const data = JSON.parse(proxyData.contents);
-              if (Array.isArray(data)) {
-                  return parseTeacherData(data);
+      // Fallback Proxy Logic
+      try {
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+          const proxyResponse = await fetch(proxyUrl);
+          if (proxyResponse.ok) {
+              const proxyData = await proxyResponse.json();
+              if (proxyData.contents) {
+                  const data = JSON.parse(proxyData.contents);
+                  if (Array.isArray(data)) {
+                       return data.map((item: any) => item.toString().trim()).filter((n: string) => n.length > 0);
+                  }
               }
           }
+      } catch (proxyError) {
+          console.error("Failed to fetch teachers via proxy", proxyError);
       }
+  }
+  return [];
+};
+
+// --- Function to get Teams List from Sheet "Teams" (Header: Team) ---
+export const getTeamsFromSheet = async (): Promise<string[]> => {
+  if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
+    return [];
+  }
+
+  // Expects GAS to handle action=getTeams and return ["Team A", "Team B"]
+  const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTeams&t=${Date.now()}`;
+  
+  try {
+     console.log("Fetching teams from:", targetUrl);
+     const response = await fetch(targetUrl, { method: 'GET', redirect: 'follow' });
+     
+     if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data)) {
+             return data.map(item => {
+                 // Handle if GAS returns object {Team: "Name"} or simple string "Name"
+                 if (typeof item === 'object') {
+                     return item.Team || item.team || Object.values(item)[0] || '';
+                 }
+                 return item.toString();
+             }).map((t: string) => t.trim()).filter(t => t.length > 0);
+        }
+     }
   } catch (e) {
-      console.error("Failed to fetch teachers list via proxy", e);
+      console.warn("Direct teams fetch failed, trying proxy...", e);
+      try {
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        const proxyResponse = await fetch(proxyUrl);
+        if (proxyResponse.ok) {
+            const proxyData = await proxyResponse.json();
+            if (proxyData.contents) {
+                const data = JSON.parse(proxyData.contents);
+                if (Array.isArray(data)) {
+                    return data.map((item: any) => {
+                         if (typeof item === 'object') {
+                             return item.Team || item.team || Object.values(item)[0] || '';
+                         }
+                         return item.toString();
+                    }).map((t: string) => t.trim()).filter((t: string) => t.length > 0);
+                }
+            }
+        }
+      } catch (proxyError) { console.error("Proxy team fetch failed", proxyError); }
   }
 
   return [];
