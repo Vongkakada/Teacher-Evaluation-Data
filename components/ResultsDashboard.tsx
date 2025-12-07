@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Category, Submission, TeacherInfo } from '../types';
+import { Category, Submission, TeacherInfo, Teacher } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar, Layers } from 'lucide-react';
+import { Printer, Download, Share2, Eye, EyeOff, Copy, Check, Filter, Calendar, Layers, Users } from 'lucide-react';
 import { getPublicLinkStatus, setPublicLinkStatus } from '../services/storage';
 
 interface ResultsDashboardProps {
@@ -9,7 +9,7 @@ interface ResultsDashboardProps {
   categories: Category[];
   teacherInfo: TeacherInfo;
   isPublicView?: boolean;
-  teachersList: string[]; // NEW PROP
+  teachersList: Teacher[];
 }
 
 export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
@@ -23,16 +23,18 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   // --- Filtering State ---
   // Default to passed teacherInfo name (if public) or first in dynamic list
   const [filterTeacher, setFilterTeacher] = useState(
-      isPublicView ? teacherInfo.name : (teachersList.length > 0 ? teachersList[0] : '')
+      isPublicView ? teacherInfo.name : (teachersList.length > 0 ? teachersList[0].name : '')
   );
   const [filterTerm, setFilterTerm] = useState('All');
   const [filterMonth, setFilterMonth] = useState('All');
   const [filterYear, setFilterYear] = useState('All');
-  const [filterYearLevel, setFilterYearLevel] = useState('All'); // New Filter for Year Level (1, 2, 3, 4)
+  const [filterYearLevel, setFilterYearLevel] = useState('All');
+  const [filterTeam, setFilterTeam] = useState('All'); // New Team Filter
 
-  // Derive unique Terms and Dates from actual data for dropdowns
+  // Derive unique values for dropdowns
   const availableTerms = Array.from(new Set(submissions.map(s => s.term).filter(Boolean)));
   const availableYears = Array.from(new Set(submissions.map(s => new Date(s.timestamp).getFullYear().toString())));
+  const availableTeams = Array.from(new Set(submissions.map(s => s.team).filter(Boolean)));
   
   // Apply filters
   const filteredSubmissions = submissions.filter(s => {
@@ -42,8 +44,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       const matchesYear = filterYear === 'All' || date.getFullYear().toString() === filterYear;
       const matchesMonth = filterMonth === 'All' || (date.getMonth() + 1).toString() === filterMonth;
       const matchesYearLevel = filterYearLevel === 'All' || (s.yearLevel && s.yearLevel.toString() === filterYearLevel);
+      const matchesTeam = filterTeam === 'All' || s.team === filterTeam;
 
-      return matchesTeacher && matchesTerm && matchesYear && matchesMonth && matchesYearLevel;
+      return matchesTeacher && matchesTerm && matchesYear && matchesMonth && matchesYearLevel && matchesTeam;
   });
 
   const totalStudents = filteredSubmissions.length;
@@ -52,13 +55,19 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const currentTerm = filterTerm !== 'All' ? filterTerm : (filteredSubmissions.length > 0 ? filteredSubmissions[0].term || '-' : '-');
   const currentMajor = filteredSubmissions.length > 0 ? filteredSubmissions[0].major || '-' : '-';
   const currentYearLevel = filterYearLevel !== 'All' ? filterYearLevel : (filteredSubmissions.length > 0 ? filteredSubmissions[0].yearLevel || '-' : '-');
-
-  // Extract extra info from the first matching submission (assuming consistency within the filtered set)
+  
+  // Extract extra info from the first matching submission
   const firstSub = filteredSubmissions[0];
   const currentSubject = firstSub?.subject || '-';
   const currentRoom = firstSub?.room || '-';
   const currentShift = firstSub?.shift || '-';
   const currentDate = firstSub ? new Date(firstSub.timestamp).toLocaleDateString('km-KH') : '-';
+  
+  // Logic for Current Team Display:
+  // 1. Prioritize team from the actual filtered submissions (read from Sheet Term...)
+  // 2. If no submissions, try to find team from the Teachers List based on selected teacher name.
+  // 3. Fallback to Unknown.
+  const currentTeam = firstSub?.team || (teachersList.find(t => t.name === filterTeacher)?.team || 'General');
 
   // --- Share Link Logic ---
   const [isShareActive, setIsShareActive] = useState(false);
@@ -98,6 +107,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
       'Submission ID',
       'Date Submitted',
       'Teacher Name',
+      'Team',
       'Term',
       'Subject',
       'Major',
@@ -119,6 +129,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         sub.id,
         new Date(sub.timestamp).toLocaleString('km-KH'),
         sub.teacherName,
+        sub.team || '-',
         sub.term || '-',
         sub.subject || '-',
         sub.major || '-',
@@ -161,46 +172,24 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
   const questionStats = categories.map(cat => {
     const qStats = cat.questions.map(q => {
-      const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       let sum = 0;
-
       filteredSubmissions.forEach(sub => {
         const rating = sub.ratings[q.id] || 0;
         if (rating > 0) {
-          counts[rating as 1|2|3|4|5]++;
           sum += rating;
         }
       });
-      
       const maxPossible = totalStudents * 5;
       const percentage = maxPossible > 0 ? (sum / maxPossible) * 100 : 0;
-      
-      grandTotalScore += percentage;
-      totalMaxScore += 100;
-
-      return {
-        ...q,
-        counts,
-        sum,
-        percentage,
-        resultLabel: percentage >= 50 ? 'ជាប់' : 'ធ្លាក់'
-      };
+      return { percentage };
     });
 
     const categorySumPct = qStats.reduce((acc, curr) => acc + curr.percentage, 0);
     const categoryAvgPct = qStats.length > 0 ? categorySumPct / qStats.length : 0;
     
-    let grade = 'E';
-    if (categoryAvgPct >= 90) grade = 'A';
-    else if (categoryAvgPct >= 80) grade = 'B';
-    else if (categoryAvgPct >= 65) grade = 'C';
-    else if (categoryAvgPct >= 50) grade = 'D';
-
     return {
       title: cat.title,
-      questions: qStats,
       subtotal: categoryAvgPct,
-      grade
     };
   });
 
@@ -212,20 +201,6 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   else if (finalScore >= 80) finalGrade = 'B';
   else if (finalScore >= 65) finalGrade = 'C';
   else if (finalScore >= 50) finalGrade = 'D';
-
-  // Calculate GPA (4.0 Scale) based on the Final Score
-  // Mapping logic:
-  // 90-100 (A) -> 4.0
-  // 80-89  (B) -> 3.5
-  // 65-79  (C) -> 2.5
-  // 50-64  (D) -> 1.5
-  // < 50   (E) -> 0.0
-  let gpa = 0.0;
-  if (finalScore >= 90) gpa = 4.0;
-  else if (finalScore >= 80) gpa = 3.5;
-  else if (finalScore >= 65) gpa = 2.5;
-  else if (finalScore >= 50) gpa = 1.5;
-  else gpa = 0.0;
 
   const chartData = questionStats.map(c => ({
     name: c.title.split('(')[0],
@@ -244,7 +219,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <Filter size={18} className="text-teal-600" />
                 ស្វែងរករបាយការណ៍ (Filter Report)
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 {/* Teacher Filter */}
                 <div className="col-span-2 md:col-span-1">
                     <label className="block text-xs font-semibold text-gray-500 mb-1">ឈ្មោះគ្រូ (Teacher)</label>
@@ -254,6 +229,24 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-bold text-gray-800"
                     >
                         {teachersList.map(t => (
+                            <option key={t.name} value={t.name}>{t.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Team Filter */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                        <Users size={12} />
+                        ក្រុម (Team)
+                    </label>
+                    <select 
+                        value={filterTeam}
+                        onChange={(e) => setFilterTeam(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+                    >
+                        <option value="All">All Teams</option>
+                        {availableTeams.map(t => (
                             <option key={t} value={t}>{t}</option>
                         ))}
                     </select>
@@ -267,14 +260,14 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterTerm(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
                     >
-                        <option value="All">បង្ហាញទាំងអស់ (All Terms)</option>
+                        <option value="All">All Terms</option>
                         {availableTerms.map(t => (
                             <option key={t} value={t}>{t}</option>
                         ))}
                     </select>
                 </div>
 
-                {/* Year Level Filter - NEW */}
+                {/* Year Level Filter */}
                 <div>
                     <label className="block text-xs font-semibold text-gray-500 mb-1 flex items-center gap-1">
                        <Layers size={12} />
@@ -285,7 +278,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterYearLevel(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
                     >
-                        <option value="All">គ្រប់ឆ្នាំ (All Years)</option>
+                        <option value="All">All Years</option>
                         <option value="1">ឆ្នាំទី ១</option>
                         <option value="2">ឆ្នាំទី ២</option>
                         <option value="3">ឆ្នាំទី ៣</option>
@@ -301,7 +294,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterYear(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
                     >
-                        <option value="All">គ្រប់ឆ្នាំ (All Years)</option>
+                        <option value="All">All Years</option>
                         {availableYears.map(y => (
                             <option key={y} value={y}>{y}</option>
                         ))}
@@ -316,7 +309,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                         onChange={(e) => setFilterMonth(e.target.value)}
                         className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
                     >
-                        <option value="All">គ្រប់ខែ (All Months)</option>
+                        <option value="All">All Months</option>
                         {Array.from({length: 12}, (_, i) => i + 1).map(m => (
                             <option key={m} value={m.toString()}>ខែ {m}</option>
                         ))}
@@ -403,8 +396,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                 <p className="text-sm text-gray-500 mt-1 flex flex-wrap gap-2">
                     <span className="bg-gray-100 px-2 rounded">សាស្រ្តាចារ្យ: <span className="font-bold">{filterTeacher}</span></span>
                     <span className="bg-gray-100 px-2 rounded">Term: <span className="font-bold">{filterTerm}</span></span>
-                    <span className="bg-gray-100 px-2 rounded">Year: <span className="font-bold">{filterYearLevel === 'All' ? 'All' : `Year ${filterYearLevel}`}</span></span>
-                    <span className="bg-gray-100 px-2 rounded">Major: <span className="font-bold">{currentMajor}</span></span>
+                    <span className="bg-gray-100 px-2 rounded">Team: <span className="font-bold">{currentTeam}</span></span>
                 </p>
             </div>
             
@@ -428,10 +420,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
             </div>
         </div>
 
-        {/* Info Grid - Redesigned Layout */}
+        {/* Info Grid - Updated with Team, Removed GPA */}
         <div className="mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-white print:border-gray-300 print:p-0">
            
-           {/* Row 1: Teacher, Subject, Major, GPA */}
+           {/* Row 1: Teacher, Subject, Major, Team (replaces GPA) */}
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 border-b border-blue-200 pb-4 print:border-gray-200">
                <div>
                    <p className="text-gray-500 text-xs uppercase font-bold">ឈ្មោះសាស្ត្រាចារ្យ (Teacher)</p>
@@ -446,8 +438,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
                    <p className="text-sm sm:text-base font-bold text-gray-900 break-words">{currentMajor}</p>
                </div>
                <div className="bg-white p-1 rounded border border-blue-200 shadow-sm print:border-none print:shadow-none print:p-0">
-                   <p className="text-gray-500 text-xs uppercase font-bold text-center">GPA</p>
-                   <p className="text-lg sm:text-xl font-bold text-purple-700 text-center">{gpa.toFixed(2)}</p>
+                   {/* Replaced GPA with Team Name */}
+                   <p className="text-gray-500 text-xs uppercase font-bold text-center">ឈ្មោះក្រុម (Team)</p>
+                   <p className="text-lg sm:text-xl font-bold text-teal-700 text-center">{currentTeam}</p>
                </div>
            </div>
 
@@ -476,84 +469,23 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
            </div>
         </div>
 
-        {/* The Big Table */}
-        <div className="overflow-x-auto print:overflow-visible p-1">
-          <table className="w-full text-sm border-collapse border border-gray-500 print:border-2 print:border-black">
-            <thead>
-                <tr className="bg-teal-600 text-white print:bg-gray-200 print:text-black">
-                    <th className="border border-gray-500 print:border print:border-black p-2 text-left w-1/3">លក្ខណៈវិនិច្ឆ័យ (Criteria)</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 text-center w-64">សូចនាករ (Indicators)</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">A</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">B</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">C</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">D</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-8">E</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Score</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Result</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Total</th>
-                    <th className="border border-gray-500 print:border print:border-black p-2 w-16">Grade</th>
-                </tr>
-            </thead>
-            <tbody>
-                {questionStats.map((cat, catIndex) => (
-                    <React.Fragment key={catIndex}>
-                        {cat.questions.map((q, qIndex) => (
-                            <tr key={q.id} className="hover:bg-gray-50">
-                                {qIndex === 0 && (
-                                    <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 font-bold align-middle bg-gray-50">
-                                        {cat.title}
-                                    </td>
-                                )}
-                                <td className="border border-gray-500 print:border print:border-black p-2">{q.text}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[5]}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[4]}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[3]}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[2]}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.counts[1]}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center font-medium">{q.percentage.toFixed(2)}</td>
-                                <td className="border border-gray-500 print:border print:border-black p-2 text-center">{q.resultLabel}</td>
-                                {qIndex === 0 && (
-                                    <>
-                                        <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 text-center font-bold align-middle">
-                                            {cat.subtotal.toFixed(2)}
-                                        </td>
-                                        <td rowSpan={cat.questions.length} className="border border-gray-500 print:border print:border-black p-2 text-center font-bold align-middle text-lg">
-                                            {cat.grade}
-                                        </td>
-                                    </>
-                                )}
-                            </tr>
-                        ))}
-                    </React.Fragment>
-                ))}
-                <tr className="bg-teal-500 text-white font-bold print:bg-gray-300 print:text-black">
-                    <td colSpan={9} className="border border-gray-500 print:border print:border-black p-2 text-right pr-4">
-                        <div className="flex flex-col items-end">
-                            <span>Total Score</span>
-                            <span className="text-xs font-normal opacity-80">(Average of all categories)</span>
-                        </div>
-                    </td>
-                    <td className="border border-gray-500 print:border print:border-black p-2 text-center align-middle text-lg">{finalScore.toFixed(2)}</td>
-                    <td className="border border-gray-500 print:border print:border-black p-2 text-center align-middle text-lg">{finalGrade}</td>
-                </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Legend */}
-        <div className="mt-2 text-sm text-gray-600 border border-gray-200 p-3 rounded bg-gray-50 break-inside-avoid">
-            <div className="flex flex-wrap gap-4 items-center">
-                <span className="font-bold">សម្គាល់ (Legend):</span>
-                <span className="text-red-500 font-medium">A=90-100 (GPA 4.0)</span>
-                <span className="text-orange-500 font-medium">B=80-89 (GPA 3.5)</span>
-                <span className="text-yellow-600 font-medium">C=65-79 (GPA 2.5)</span>
-                <span className="text-blue-500 font-medium">D=50-64 (GPA 1.5)</span>
-                <span className="text-gray-500 font-medium">E=&lt;50 (GPA 0.0)</span>
+        {/* Removed Detailed Table. Replaced with Final Grade Summary Card */}
+        <div className="flex justify-center my-8">
+            <div className="bg-teal-50 border-2 border-teal-500 rounded-xl p-8 text-center shadow-lg transform hover:scale-105 transition-transform max-w-sm w-full">
+                <h3 className="text-teal-800 font-moul text-xl mb-2">លទ្ធផលសរុប (Total Grade)</h3>
+                <div className="text-6xl font-black text-teal-600 mb-2">{finalGrade}</div>
+                <div className="text-lg text-gray-600 font-medium">Score: {finalScore.toFixed(2)}</div>
+                
+                {/* Grade Legend inline */}
+                <div className="mt-4 pt-4 border-t border-teal-200 text-xs text-gray-500">
+                     A (90-100) | B (80-89) | C (65-79) | D (50-64) | E (&lt;50)
+                </div>
             </div>
         </div>
 
+
         {/* SIGNATURE BLOCK */}
-        <div className="mt-3 break-inside-avoid print:block">
+        <div className="mt-10 break-inside-avoid print:block">
             {/* Top Row: QAO Head and Data Collector */}
             <div className="flex justify-between items-start text-center text-sm font-sans text-black leading-loose">
                 {/* Left */}

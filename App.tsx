@@ -4,7 +4,7 @@ import { ResultsDashboard } from './components/ResultsDashboard';
 import { LinkGenerator } from './components/LinkGenerator';
 import { LoginForm } from './components/LoginForm'; // Import Login Form
 import { EVALUATION_DATA, TEACHER_INFO_DEFAULT, TEACHERS_LIST } from './constants';
-import { Submission, TeacherInfo } from './types';
+import { Submission, TeacherInfo, Teacher } from './types';
 import { saveSubmission, getSubmissions, clearSubmissions, getPublicLinkStatus, getTeachersFromSheet } from './services/storage';
 import { LayoutDashboard, FileText, QrCode, Trash2, RefreshCw, Lock, Clock, AlertCircle, CalendarX, Ban, Timer } from 'lucide-react';
 
@@ -13,8 +13,10 @@ function App() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   
-  // Dynamic Teacher List State (Initialized with Default)
-  const [availableTeachers, setAvailableTeachers] = useState<string[]>(TEACHERS_LIST);
+  // Dynamic Teacher List State (Initialized with Default as objects)
+  const [availableTeachers, setAvailableTeachers] = useState<Teacher[]>(
+      TEACHERS_LIST.map(name => ({ name, team: 'Unknown' }))
+  );
 
   // Auth State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -93,6 +95,7 @@ function App() {
             term: params.get('term') || TEACHER_INFO_DEFAULT.term,
             major: params.get('major') || TEACHER_INFO_DEFAULT.major,
             year: params.get('year') || TEACHER_INFO_DEFAULT.year, // Year Level
+            team: params.get('team') || TEACHER_INFO_DEFAULT.team, // Parse Team
         };
         setTeacherInfo(infoFromUrl);
 
@@ -162,6 +165,7 @@ function App() {
       term: teacherInfo.term,
       major: teacherInfo.major,
       yearLevel: teacherInfo.year, // Use teacherInfo.year (1,2,3,4) as yearLevel
+      team: teacherInfo.team,
     };
 
     const success = await saveSubmission(fullSubmission);
@@ -215,70 +219,6 @@ function App() {
       ...TEACHER_INFO_DEFAULT,
       name: '' 
   };
-
-  // Render Access Denied Page
-  if (view === 'access_denied') {
-      return (
-          <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 font-sans">
-              <div className="bg-white p-8 rounded-lg shadow-lg text-center max-w-md w-full border-t-4 border-red-600">
-                  <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Lock className="w-10 h-10 text-red-600" />
-                  </div>
-                  <h1 className="text-xl font-moul text-gray-800 mb-2">ការចូលមើលត្រូវបានបិទ</h1>
-                  <p className="text-gray-600 mb-8">Link នេះត្រូវបានបិទ ឬមិនអនុញ្ញាតឱ្យចូលមើលជាសាធារណៈទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រព័ន្ធ។</p>
-              </div>
-          </div>
-      );
-  }
-
-  // Render Expired Page
-  if (view === 'expired') {
-    const expiredDateStr = expiredTimestamp 
-        ? new Date(expiredTimestamp).toLocaleString('km-KH', { dateStyle: 'long', timeStyle: 'short' }) 
-        : 'N/A';
-
-    return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-            <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-lg w-full border border-gray-200 relative overflow-hidden">
-                {/* Decorative background circle */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-red-500"></div>
-                
-                <div className="bg-red-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                    <CalendarX className="w-12 h-12 text-red-500" />
-                </div>
-                
-                <h1 className="text-2xl font-moul text-red-600 mb-2">Link ផុតកំណត់</h1>
-                <h2 className="text-lg font-bold text-gray-700 mb-6 uppercase tracking-wide">Link Expired</h2>
-                
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-left mb-6">
-                    <p className="text-sm text-gray-500 mb-1">ការវាយតម្លៃសម្រាប់ (Evaluation For):</p>
-                    <p className="font-bold text-gray-800 text-lg mb-2">{teacherInfo.name}</p>
-                    <div className="flex justify-between text-sm text-gray-600 border-t border-gray-200 pt-2 mt-2">
-                        <span>មុខវិជ្ជា: {teacherInfo.subject}</span>
-                        <span>{teacherInfo.term}</span>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <p className="text-gray-600">
-                        សុំទោស Link សម្រាប់វាយតម្លៃមួយនេះបានផុតកំណត់តាំងពី៖
-                        <br/>
-                        <span className="font-bold text-red-500 block mt-1 text-lg">{expiredDateStr}</span>
-                    </p>
-                    
-                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-red-50 p-3 rounded text-center">
-                        <Ban className="w-4 h-4 text-red-500 flex-shrink-0" />
-                        <span>មិនអាចធ្វើការវាយតម្លៃបានទៀតទេ។</span>
-                    </div>
-                </div>
-
-                <p className="text-xs text-gray-400 mt-8">
-                    ប្រសិនបើអ្នកគិតថានេះជាកំហុស សូមទាក់ទងការិយាល័យសិក្សា។
-                </p>
-            </div>
-        </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
@@ -401,7 +341,7 @@ function App() {
              </div>
             <EvaluationForm
               teacherInfo={teacherInfo}
-              teachers={availableTeachers} // PASS DYNAMIC LIST
+              teachers={availableTeachers.map(t => t.name)} // Pass only names to form
               onTeacherChange={(name) => setTeacherInfo({...teacherInfo, name})}
               categories={EVALUATION_DATA}
               onSubmit={handleSubmission}
@@ -413,8 +353,8 @@ function App() {
         {view === 'generator' && !isReadOnlyMode && !isPublicView && isLoggedIn && (
              <div className="animate-fade-in">
                  <LinkGenerator 
-                    teachersList={availableTeachers} // PASS DYNAMIC LIST
-                    onRefreshTeachers={fetchTeachers} // PASS REFRESH FUNCTION
+                    teachersList={availableTeachers} // PASS OBJECT LIST
+                    onRefreshTeachers={fetchTeachers} 
                  /> 
              </div>
         )}
@@ -454,7 +394,7 @@ function App() {
                     categories={EVALUATION_DATA}
                     teacherInfo={isPublicView ? teacherInfo : dashboardTeacherInfo}
                     isPublicView={isPublicView}
-                    teachersList={availableTeachers} // PASS DYNAMIC LIST
+                    teachersList={availableTeachers} // PASS OBJECT LIST
                  />
              )}
           </div>

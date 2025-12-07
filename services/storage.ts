@@ -1,4 +1,4 @@
-import { Submission, TeacherInfo } from '../types';
+import { Submission, Teacher, TeacherInfo } from '../types';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '../constants';
 
 // Extended interface to include extra fields for the Sheet
@@ -9,6 +9,7 @@ interface SheetSubmission extends Submission {
   term?: string;
   major?: string;
   yearLevel?: string;
+  team?: string;
   sheetName?: string; // Explicitly send target sheet name
 }
 
@@ -60,39 +61,54 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   }
 };
 
-// --- NEW: Function to get Teachers List ---
-export const getTeachersFromSheet = async (): Promise<string[]> => {
+// --- NEW: Function to get Teachers List (Now returns Teacher objects) ---
+export const getTeachersFromSheet = async (): Promise<Teacher[]> => {
   if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     return [];
   }
 
-  // Corresponds to the GAS code: if (action == "getTeachers") { ... }
   const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=getTeachers&t=${Date.now()}`;
   
+  // Helper to parse diverse data formats from GAS
+  const parseTeacherData = (data: any[]): Teacher[] => {
+      return data.map((item: any) => {
+          // Format 1: Array of values [Name, Team, ...] (from range.getValues())
+          if (Array.isArray(item)) {
+              return {
+                  name: item[0]?.toString().trim() || '',
+                  team: item[1]?.toString().trim() || 'General' // Assuming Col B is Team
+              };
+          }
+          // Format 2: Object { name: "...", team: "..." }
+          else if (typeof item === 'object' && item.name) {
+              return { 
+                  name: item.name.trim(), 
+                  team: item.team ? item.team.trim() : 'General' 
+              };
+          }
+          // Format 3: Simple String "Name"
+          else if (typeof item === 'string') {
+               return { name: item.trim(), team: 'General' };
+          }
+          return null;
+      }).filter((t): t is Teacher => t !== null && t.name.length > 0);
+  };
+
   try {
      console.log("Fetching teachers from:", targetUrl);
-     // Attempt direct fetch first
      const response = await fetch(targetUrl, { method: 'GET', redirect: 'follow' });
      
      if (response.ok) {
         const data = await response.json();
-        // The GAS code returns a simple JSON Array: ["Teacher A", "Teacher B"]
-        // We validate that it is indeed an array
         if (Array.isArray(data)) {
-            // Filter out empty strings and trim whitespace
-            const cleanList = data
-                .map(item => String(item).trim())
-                .filter(name => name.length > 0);
-            
-            // Deduplicate just in case
-            return Array.from(new Set(cleanList));
+            return parseTeacherData(data);
         }
      }
   } catch (e) {
       console.warn("Direct teacher fetch failed, trying proxy...", e);
   }
 
-  // Fallback to proxy if CORS fails (common with GAS Web Apps depending on deployment settings)
+  // Fallback to proxy logic
   try {
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       const proxyResponse = await fetch(proxyUrl);
@@ -101,15 +117,12 @@ export const getTeachersFromSheet = async (): Promise<string[]> => {
           if (proxyData.contents) {
               const data = JSON.parse(proxyData.contents);
               if (Array.isArray(data)) {
-                  const cleanList = data
-                    .map((item: any) => String(item).trim())
-                    .filter((name: string) => name.length > 0);
-                  return Array.from(new Set(cleanList));
+                  return parseTeacherData(data);
               }
           }
       }
   } catch (e) {
-      console.error("Failed to fetch teachers list", e);
+      console.error("Failed to fetch teachers list via proxy", e);
   }
 
   return [];
@@ -135,10 +148,8 @@ export const getSubmissions = async (): Promise<Submission[]> => {
           redirect: 'follow'
       });
       
-      // Check content type before parsing
       const contentType = response.headers.get("content-type");
       if (contentType && !contentType.includes("application/json")) {
-         // Special handling: Google Script returns HTML when permissions are wrong
          if (contentType.includes("text/html")) {
              throw new Error("HTML_RESPONSE");
          }
@@ -151,33 +162,23 @@ export const getSubmissions = async (): Promise<Submission[]> => {
       return await response.json();
 
     } catch (directError: any) {
-      // If we detected HTML response specifically (permissions issue), notify user immediately
       if (directError.message === "HTML_RESPONSE") {
-          alert("កំហុស៖ Google Script របស់អ្នកកំពុងបញ្ជូនមកនូវទំព័រ Login (HTML) មិនមែនទិន្នន័យទេ។\n\nដំណោះស្រាយ៖\n1. ចូលទៅកាន់ Google Apps Script -> Deploy -> Manage deployments\n2. ចុច Edit (រូបខ្មៅដៃ)\n3. ត្រង់ Version ត្រូវដូរដាក់ 'New Version' (សំខាន់!)\n4. 'Who has access' ត្រូវដាក់ 'Anyone'\n5. ចុច Deploy ម្តងទៀត។");
+          alert("កំហុស៖ Google Script របស់អ្នកកំពុងបញ្ជូនមកនូវទំព័រ Login (HTML) មិនមែនទិន្នន័យទេ។");
           throw directError;
       }
 
       console.warn("Direct fetch failed (CORS or Network). Switching to Proxy...", directError);
       
-      // Attempt 2: Proxy Fetch (Using allorigins.win JSON Wrapper)
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-      
       const proxyResponse = await fetch(proxyUrl);
-      if (!proxyResponse.ok) {
-         throw new Error('Proxy fetch also failed');
-      }
+      if (!proxyResponse.ok) throw new Error('Proxy fetch also failed');
       
       const proxyData = await proxyResponse.json();
-      
-      // Check contents
       if (proxyData.contents) {
           try {
-              // The contents should be the JSON string from the Sheet
               return JSON.parse(proxyData.contents);
           } catch (e) {
               if (typeof proxyData.contents === 'string' && proxyData.contents.trim().startsWith('<')) {
-                  console.error("Proxy returned HTML instead of JSON.");
-                  alert("កំហុស៖ Google Script កំពុងជាប់សិទ្ធិ (Access Denied)។\n\nសូមចូលទៅ Google Script, ចុច Deploy > Manage Deployments > Edit > ជ្រើសរើស 'New Version' > Deploy ម្ដងទៀត។");
                   throw new Error("Deployment Error: Script returned HTML.");
               }
               throw e;
@@ -192,21 +193,14 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     const rawData = await fetchWithFallback();
     console.log("Raw Data fetched successfully:", rawData);
 
-    // Map the raw sheet data to our App's Submission Interface
     const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
-        
-        // 1. Parse Ratings with Smart Swap Detection
-        // GAS Code Bug: The GAS code provided swaps "Ratings (JSON)" and "Comment".
-        // Ratings (JSON) column gets the Comment Text. Comment column gets the JSON string.
         let rawRatings = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
         let rawComment = row['Comment'] || row['comment'] || '';
         
         let parsedRatings: Record<string, number> = {};
 
-        // Heuristic: If 'Ratings' column looks like plain text and 'Comment' column looks like JSON, swap them.
         if (typeof rawRatings === 'string' && !rawRatings.trim().startsWith('{') && rawRatings.trim() !== '' &&
             typeof rawComment === 'string' && rawComment.trim().startsWith('{')) {
-             console.warn("Detected swapped columns (Ratings/Comment). Auto-fixing...");
              const temp = rawRatings;
              rawRatings = rawComment;
              rawComment = temp;
@@ -216,17 +210,15 @@ export const getSubmissions = async (): Promise<Submission[]> => {
             try {
                 parsedRatings = JSON.parse(rawRatings);
             } catch (e) {
-                console.warn("Failed to parse ratings JSON for row:", row['ID'], e);
+                console.warn("Failed to parse ratings JSON", e);
             }
         } else if (typeof rawRatings === 'object') {
             parsedRatings = rawRatings;
         }
 
-        // 2. Parse Timestamp
         const dateVal = row['Date'] || row['timestamp'];
         const timestamp = dateVal ? new Date(dateVal).getTime() : Date.now();
 
-        // 3. Construct the Submission Object
         return {
             id: row['ID'] || row['id'] || 'unknown',
             timestamp: timestamp,
@@ -237,7 +229,8 @@ export const getSubmissions = async (): Promise<Submission[]> => {
             yearLevel: (row['Year Level'] || row['yearLevel'] || row['year'] || '').toString(),
             room: row['Room'] || row['room'],
             shift: row['Shift'] || row['shift'],
-            comment: rawComment || '', // Use the correctly identified comment
+            team: row['Team'] || row['team'] || 'General', // Default to General if missing
+            comment: rawComment || '',
             ratings: parsedRatings
         };
     }) : [];
@@ -251,11 +244,9 @@ export const getSubmissions = async (): Promise<Submission[]> => {
 };
 
 export const clearSubmissions = () => {
-   // Only clear local storage
    localStorage.removeItem('teacher_eval_submissions');
 };
 
-// --- Fallback Local Storage Logic ---
 const getFromLocal = (): Submission[] => {
   const data = localStorage.getItem('teacher_eval_submissions');
   return data ? JSON.parse(data) : [];
@@ -267,7 +258,6 @@ const saveToLocal = (submission: Submission) => {
   localStorage.setItem('teacher_eval_submissions', JSON.stringify(updated));
 };
 
-// --- Public Link Status Management ---
 export const setPublicLinkStatus = (teacherName: string, isActive: boolean) => {
     const key = `public_link_status_${teacherName}`;
     localStorage.setItem(key, JSON.stringify(isActive));
@@ -276,5 +266,5 @@ export const setPublicLinkStatus = (teacherName: string, isActive: boolean) => {
 export const getPublicLinkStatus = (teacherName: string): boolean => {
     const key = `public_link_status_${teacherName}`;
     const status = localStorage.getItem(key);
-    return status ? JSON.parse(status) : false; // Default is closed
+    return status ? JSON.parse(status) : false;
 };

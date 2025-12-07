@@ -17,6 +17,11 @@ export interface Category {
   questions: Question[];
 }
 
+export interface Teacher {
+  name: string;
+  team: string;
+}
+
 // A single student's submission
 export interface Submission {
   id: string; // UUID
@@ -31,6 +36,7 @@ export interface Submission {
   shift?: string;
   major?: string;
   yearLevel?: string;
+  team?: string; // Added Team
 }
 
 export interface TeacherInfo {
@@ -39,9 +45,10 @@ export interface TeacherInfo {
   date: string;
   room: string;
   shift: string;
-  term: string; // Added Term
+  term: string;
   major: string;
-  year: string; // Year Level (1, 2, 3, 4)
+  year: string;
   generation: string;
   semester: string;
+  team: string; // Added Team
 }

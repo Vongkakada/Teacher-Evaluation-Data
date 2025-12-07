@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
-import { TeacherInfo } from '../types';
-import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers, RefreshCw } from 'lucide-react';
+import { TeacherInfo, Teacher } from '../types';
+import { QrCode, Copy, Check, Wand2, Loader2, Calendar, Clock, BookOpen, GraduationCap, Layers, RefreshCw, Users } from 'lucide-react';
 
 interface LinkGeneratorProps {
-    teachersList: string[];
+    teachersList: Teacher[];
     onRefreshTeachers?: () => Promise<void>; // Prop to trigger refresh from App
 }
 
@@ -18,6 +18,27 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
   // Expiry State
   const [expiryType, setExpiryType] = useState<'unlimited' | '24h' | '48h' | 'custom'>('24h');
   const [customDate, setCustomDate] = useState('');
+
+  // Extract unique Teams for dropdown
+  const uniqueTeams = Array.from(new Set(teachersList.map(t => t.team))).filter(Boolean);
+
+  // Effect: When teacher is selected, auto-select their team
+  useEffect(() => {
+     // If teachersList is empty, do nothing
+     if (teachersList.length === 0) return;
+
+     // Find the teacher object matching the currently selected name
+     const selectedTeacher = teachersList.find(t => t.name === info.name);
+     
+     if (selectedTeacher) {
+         // Update team only if it's different to prevent infinite loops
+         if (selectedTeacher.team && selectedTeacher.team !== info.team) {
+             setInfo(prev => ({ ...prev, team: selectedTeacher.team }));
+         }
+     } else {
+         // Fallback if teacher name manually typed or not found, keep default or select first available team if needed
+     }
+  }, [info.name, teachersList]);
 
   const handleRefreshTeachers = async () => {
       if (onRefreshTeachers) {
@@ -43,6 +64,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
     params.set('term', info.term);
     params.set('major', info.major);
     params.set('year', info.year); // Year Level
+    params.set('team', info.team); // Add Team
 
     // Calculate Expiration
     let expiryTimestamp = 0;
@@ -131,7 +153,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
                 className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 {teachersList.length === 0 && <option value="">No teachers found</option>}
-                {teachersList.map(t => <option key={t} value={t}>{t}</option>)}
+                {teachersList.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
               </select>
               {onRefreshTeachers && (
                   <button 
@@ -146,6 +168,24 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
           </div>
           <p className="text-[10px] text-gray-400 mt-1">* ទាញយកឈ្មោះពី Sheet "Teachers" (Action: getTeachers)</p>
         </div>
+
+        {/* Team Dropdown */}
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Users size={16} />
+                ក្រុម (Team)
+            </label>
+            <select
+                value={info.team}
+                onChange={(e) => setInfo({...info, team: e.target.value})}
+                className="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+                 <option value="General">General</option>
+                {uniqueTeams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">* ជ្រើសរើសដោយស្វ័យប្រវត្តិបើមានក្នុង Sheet</p>
+        </div>
+
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">មុខវិជ្ជា (Subject)</label>
             <input 

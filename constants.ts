@@ -19,8 +19,10 @@ export const TEACHER_INFO_DEFAULT = {
   year: '1',
   generation: '26',
   semester: '១',
+  team: 'General', // Default Team
 };
 
+// Initial static list (will be overwritten by sheet data)
 export const TEACHERS_LIST = [
   'ជិន ពិសិដ្ឋ',
   'ជឹម វុឌថា',
