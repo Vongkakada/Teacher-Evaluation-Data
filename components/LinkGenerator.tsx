@@ -19,7 +19,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
   const [expiryType, setExpiryType] = useState<'unlimited' | '24h' | '48h' | 'custom'>('24h');
   const [customDate, setCustomDate] = useState('');
 
-  // Extract unique Teams for dropdown
+  // Extract unique Teams for dropdown. This relies on teachersList having correct data from Sheet Column B.
   const uniqueTeams = Array.from(new Set(teachersList.map(t => t.team))).filter(Boolean);
 
   // Effect: When teacher is selected, auto-select their team

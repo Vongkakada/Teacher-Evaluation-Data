@@ -64,10 +64,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
   const currentDate = firstSub ? new Date(firstSub.timestamp).toLocaleDateString('km-KH') : '-';
   
   // Logic for Current Team Display:
-  // 1. Prioritize team from the actual filtered submissions (read from Sheet Term...)
-  // 2. If no submissions, try to find team from the Teachers List based on selected teacher name.
-  // 3. Fallback to Unknown.
-  const currentTeam = firstSub?.team || (teachersList.find(t => t.name === filterTeacher)?.team || 'General');
+  // Strictly use the Team from the submission data (Column 'Team' in Sheet).
+  // Do NOT fallback to teachersList, as the historical data might differ.
+  const currentTeam = firstSub?.team || '-';
 
   // --- Share Link Logic ---
   const [isShareActive, setIsShareActive] = useState(false);

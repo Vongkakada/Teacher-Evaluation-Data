@@ -61,7 +61,7 @@ export const saveSubmission = async (submission: SheetSubmission): Promise<boole
   }
 };
 
-// --- NEW: Function to get Teachers List (Now returns Teacher objects) ---
+// --- Function to get Teachers List from Sheet (Column A=Name, Column B=Team) ---
 export const getTeachersFromSheet = async (): Promise<Teacher[]> => {
   if (GOOGLE_SHEETS_SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
     return [];
@@ -76,7 +76,7 @@ export const getTeachersFromSheet = async (): Promise<Teacher[]> => {
           if (Array.isArray(item)) {
               return {
                   name: item[0]?.toString().trim() || '',
-                  team: item[1]?.toString().trim() || 'General' // Assuming Col B is Team
+                  team: item[1]?.toString().trim() || 'General' // Column B is Team
               };
           }
           // Format 2: Object { name: "...", team: "..." }
@@ -137,7 +137,6 @@ export const getSubmissions = async (): Promise<Submission[]> => {
   const fetchWithFallback = async () => {
     // Append timestamp to bust cache
     const timestamp = Date.now();
-    // Corresponds to GAS code: else { // handleRequest(e) for GET }
     const targetUrl = `${GOOGLE_SHEETS_SCRIPT_URL}?action=read&t=${timestamp}`;
 
     try {
@@ -194,17 +193,11 @@ export const getSubmissions = async (): Promise<Submission[]> => {
     console.log("Raw Data fetched successfully:", rawData);
 
     const formattedData: Submission[] = Array.isArray(rawData) ? rawData.map((row: any) => {
-        let rawRatings = row['Ratings (JSON)'] || row['Ratings'] || row['ratings'];
-        let rawComment = row['Comment'] || row['comment'] || '';
+        // MAPPING EXACTLY TO: ID, Date, Teacher, Subject, Major, Year Level, Team, Term, Room, Shift, Comment, Ratings (JSON)
         
+        // Handle Ratings JSON
+        let rawRatings = row['Ratings (JSON)'];
         let parsedRatings: Record<string, number> = {};
-
-        if (typeof rawRatings === 'string' && !rawRatings.trim().startsWith('{') && rawRatings.trim() !== '' &&
-            typeof rawComment === 'string' && rawComment.trim().startsWith('{')) {
-             const temp = rawRatings;
-             rawRatings = rawComment;
-             rawComment = temp;
-        }
 
         if (typeof rawRatings === 'string' && rawRatings.trim() !== '') {
             try {
@@ -216,21 +209,23 @@ export const getSubmissions = async (): Promise<Submission[]> => {
             parsedRatings = rawRatings;
         }
 
-        const dateVal = row['Date'] || row['timestamp'];
+        // Handle Date/Timestamp
+        const dateVal = row['Date'];
         const timestamp = dateVal ? new Date(dateVal).getTime() : Date.now();
 
         return {
-            id: row['ID'] || row['id'] || 'unknown',
+            id: row['ID'] || 'unknown',
             timestamp: timestamp,
-            teacherName: row['Teacher'] || row['teacherName'] || 'Unknown',
-            subject: row['Subject'] || row['subject'],
-            term: row['Term'] || row['term'],
-            major: row['Major'] || row['major'],
-            yearLevel: (row['Year Level'] || row['yearLevel'] || row['year'] || '').toString(),
-            room: row['Room'] || row['room'],
-            shift: row['Shift'] || row['shift'],
-            team: row['Team'] || row['team'] || 'General', // Default to General if missing
-            comment: rawComment || '',
+            teacherName: row['Teacher'] || 'Unknown',
+            subject: row['Subject'] || '',
+            major: row['Major'] || '',
+            yearLevel: (row['Year Level'] || '').toString(),
+            // STRICTLY CAPTURE 'Team' from the row data
+            team: row['Team'] || 'N/A', 
+            term: row['Term'] || '',
+            room: row['Room'] || '',
+            shift: row['Shift'] || '',
+            comment: row['Comment'] || '',
             ratings: parsedRatings
         };
     }) : [];
