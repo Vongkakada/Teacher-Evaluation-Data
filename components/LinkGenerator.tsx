@@ -70,16 +70,35 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
     
     setIsShortening(true);
     try {
-      // Using TinyURL's free API to shorten the link
-      const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(generatedLink)}`);
+      // Using is.gd via a CORS proxy (allorigins) because is.gd doesn't support direct browser calls.
+      // is.gd is a very reliable, fast, and free alternative to tinyurl.
+      const isGdUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(generatedLink)}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(isGdUrl)}`;
+      
+      const response = await fetch(proxyUrl);
+      
       if (response.ok) {
-        const shortUrl = await response.text();
-        setGeneratedLink(shortUrl);
+        const data = await response.json();
+        // The proxy returns the content in data.contents
+        if (data.contents && !data.contents.includes('Error')) {
+             setGeneratedLink(data.contents);
+        } else {
+             throw new Error("Shortener Error");
+        }
       } else {
         alert('មិនអាចបង្រួម Link បានទេ។ សូមប្រើ Link វែងជំនួស។ (Failed to shorten)');
       }
     } catch (error) {
       console.error('Error shortening link:', error);
+      // Fallback to TinyURL if is.gd fails
+      try {
+          const tinyRes = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(generatedLink)}`);
+          if(tinyRes.ok) {
+              const tinyUrl = await tinyRes.text();
+              setGeneratedLink(tinyUrl);
+              return;
+          }
+      } catch(e) {}
       alert('មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់សេវាកម្មបង្រួម Link។');
     } finally {
       setIsShortening(false);
@@ -291,7 +310,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
                 <button
                   onClick={shortenLink}
                   disabled={isShortening}
-                  title="បង្រួម Link ឱ្យខ្លី"
+                  title="បង្រួម Link ឱ្យខ្លី (Shorten)"
                   className="p-2 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200 transition-colors flex items-center justify-center flex-1 sm:flex-none"
                 >
                   {isShortening ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
@@ -311,7 +330,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, onRe
           </div>
           {isLongUrl && (
              <p className="text-xs text-gray-400 mt-2 text-left sm:text-center">
-               Link វែងដោយសារមានផ្ទុកទិន្នន័យ (ឈ្មោះ, បន្ទប់, ...). ចុចប៊ូតុង <Wand2 size={12} className="inline"/> ដើម្បីបង្រួម។
+               ចុចប៊ូតុង <Wand2 size={12} className="inline"/> ដើម្បីបង្រួម Link ឱ្យខ្លី (Using is.gd).
              </p>
           )}
         </div>
