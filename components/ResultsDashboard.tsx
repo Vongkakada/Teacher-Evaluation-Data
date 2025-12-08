@@ -620,7 +620,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
         
           {/* Bottom Left: Branch Director */}
-          <div className="ml-15 text-left text-sm font-sans text-black leading-loose">
+          <div className="ml-10 text-left text-sm font-sans text-black leading-loose">
             <p className="mb-2">បានត្រួតពិនិត្យ និងឯកភាព</p>
             <p className="font-moul text-lg">នាយកសាខា</p>
           </div>
