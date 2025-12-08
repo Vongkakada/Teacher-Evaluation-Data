@@ -598,7 +598,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
         {/* --- END TABLE --- */}
 
         {/* SIGNATURE BLOCK */}
-        <div className="mt-10 break-inside-avoid print:block">
+        <div className="mt-5 break-inside-avoid print:block">
         
           {/* Top Right: Data Collector */}
           <div className="flex justify-end text-right text-sm font-sans text-black leading-loose">
@@ -610,7 +610,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
         
           {/* Middle Center: Study Office Head */}
-          <div className="mt-14 flex justify-center text-center text-sm font-sans text-black leading-loose">
+          <div className="mt-1 flex justify-center text-center text-sm font-sans text-black leading-loose">
             <div className="flex flex-col items-center">
               <p className="mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
               <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
@@ -620,7 +620,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
           </div>
         
           {/* Bottom Left: Branch Director */}
-          <div className="mt-14 text-left text-sm font-sans text-black leading-loose">
+          <div className="mt-1 text-left text-sm font-sans text-black leading-loose">
             <p className="mb-2">បានត្រួតពិនិត្យ និងឯកភាព</p>
             <p className="font-moul text-lg">នាយកសាខា</p>
           </div>
