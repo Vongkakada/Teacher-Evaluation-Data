@@ -73,25 +73,30 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, team
     
     setIsShortening(true);
     try {
-      // Using is.gd via a CORS proxy (allorigins)
-      const isGdUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(generatedLink)}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(isGdUrl)}`;
-      
-      const response = await fetch(proxyUrl);
-      
+      // ប្រើ Netlify Function ដើម្បីបង្រួម Link
+      const response = await fetch('/.netlify/functions/shorten-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: generatedLink }),
+      });
+
       if (response.ok) {
         const data = await response.json();
-        if (data.contents && !data.contents.includes('Error')) {
-             setGeneratedLink(data.contents.trim());
+        if (data.shortUrl) {
+          setGeneratedLink(data.shortUrl);
         } else {
-             throw new Error("Shortener Error");
+          throw new Error('No short URL returned');
         }
       } else {
-        alert('មិនអាចបង្រួម Link បានទេ។ សូមប្រើ Link វែងជំនួស។ (Failed to shorten)');
+        const errorData = await response.json();
+        console.error('Shortener error:', errorData);
+        alert('មិនអាចបង្រួម Link បានទេ។ សូមប្រើ Link វែងជំនួស។');
       }
     } catch (error) {
       console.error('Error shortening link:', error);
-      alert('មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់សេវាកម្មបង្រួម Link។');
+      alert('មានបញ្ហាក្នុងការបង្រួម Link។ សូមប្រើ Link វែងជំនួស។');
     } finally {
       setIsShortening(false);
     }
@@ -356,7 +361,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, team
           </div>
           {isLongUrl && (
              <p className="text-xs text-gray-400 mt-2 text-left sm:text-center">
-               ចុចប៊ូតុង <Wand2 size={12} className="inline"/> ដើម្បីបង្រួម Link ឱ្យខ្លី (Using is.gd).
+               ចុចប៊ូតុង <Wand2 size={12} className="inline"/> ដើម្បីបង្រួម Link ឱ្យខ្លី (Via Netlify Function).
              </p>
           )}
         </div>
