@@ -1,8 +1,37 @@
 import { Category, RatingValue } from './types';
 
-// Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
-// Updated to the latest Deployment ID provided by the user
-export const GOOGLE_SHEETS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SHEETS_URL;
+// ប្រើ Netlify Function ជំនួស URL ដើម ✅
+export const API_BASE_URL = '/.netlify/functions/sheets-proxy';
+
+// Helper functions
+export const fetchData = async (action?: string) => {
+  const url = action ? `${API_BASE_URL}?action=${action}` : API_BASE_URL;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+export const saveData = async (data: any) => {
+  const response = await fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
 // Admin Credentials
 export const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME;
 export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
