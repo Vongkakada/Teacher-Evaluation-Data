@@ -2,7 +2,7 @@ import { Category, RatingValue } from './types';
 
 // Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
 // Updated to the latest Deployment ID provided by the user
-export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzq247q9XhLeIFjVCZiKj51UI3cD60sWIHVkiTfpzLsTV9Gm8y7eAprxlXboWko0Q0tOQ/exec";
+export const GOOGLE_SHEETS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SHEETS_URL;
 // Admin Credentials
 export const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME;
 export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
