@@ -1,3 +1,4 @@
+//LinkGenerator.tsx
 import React, { useState } from 'react';
 import { TEACHER_INFO_DEFAULT, TERMS_LIST } from '../constants';
 import { TeacherInfo } from '../types';
@@ -72,7 +73,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, team
     
     setIsShortening(true);
     try {
-      // Using is.gd via a CORS proxy (allorigins) because is.gd doesn't support direct browser calls.
+      // Using is.gd via a CORS proxy (allorigins)
       const isGdUrl = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(generatedLink)}`;
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(isGdUrl)}`;
       
@@ -81,7 +82,7 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, team
       if (response.ok) {
         const data = await response.json();
         if (data.contents && !data.contents.includes('Error')) {
-             setGeneratedLink(data.contents);
+             setGeneratedLink(data.contents.trim());
         } else {
              throw new Error("Shortener Error");
         }
@@ -90,14 +91,6 @@ export const LinkGenerator: React.FC<LinkGeneratorProps> = ({ teachersList, team
       }
     } catch (error) {
       console.error('Error shortening link:', error);
-      try {
-          const tinyRes = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(generatedLink)}`);
-          if(tinyRes.ok) {
-              const tinyUrl = await tinyRes.text();
-              setGeneratedLink(tinyUrl);
-              return;
-          }
-      } catch(e) {}
       alert('មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់សេវាកម្មបង្រួម Link។');
     } finally {
       setIsShortening(false);
