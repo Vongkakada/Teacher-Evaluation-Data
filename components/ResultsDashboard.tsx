@@ -599,29 +599,31 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
 
         {/* SIGNATURE BLOCK */}
         <div className="mt-10 break-inside-avoid print:block">
-            {/* Top Row: QAO Head and Data Collector */}
-            <div className="flex justify-between items-start text-center text-sm font-sans text-black leading-loose">
-                {/* Left */}
-                <div className="flex flex-col items-center">
-                    <p className="mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
-                    <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
-                    <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
-                    <p className="font-moul mt-1">ប្រធានការិយាល័យធានាគុណភាពអប់រំ</p>
-                </div>
-
-                {/* Right */}
-                <div className="flex flex-col items-center pt-8"> {/* pt-8 to offset the "Seen..." title */}
-                    <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
-                    <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
-                    <p className="font-moul mt-1">អ្នកស្រង់ទិន្នន័យ</p>
-                </div>
+        
+          {/* Top Right: Data Collector */}
+          <div className="flex justify-end text-right text-sm font-sans text-black leading-loose">
+            <div className="flex flex-col items-center">
+              <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
+              <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
+              <p className="font-moul mt-1">អ្នកស្រង់ទិន្នន័យ</p>
             </div>
-
-            {/* Bottom Row: Director */}
-            <div className="mt-14 text-center text-sm font-sans text-black leading-loose">
-                <p className="mb-2">បានត្រួតពិនិត្យ និងឯកភាព</p>
-                <p className="font-moul text-lg">នាយកសាខា</p>
+          </div>
+        
+          {/* Middle Center: Study Office Head */}
+          <div className="mt-14 flex justify-center text-center text-sm font-sans text-black leading-loose">
+            <div className="flex flex-col items-center">
+              <p className="mb-1">បានឃើញ និងផ្ទៀងផ្ទាត់ត្រឹមត្រូវ</p>
+              <p>ថ្ងៃ..........................ខែ................ឆ្នាំ....................... ព.ស ២៥៦......</p>
+              <p className="mb-2">....................................ថ្ងៃទី............ខែ..............ឆ្នាំ២០.......</p>
+              <p className="font-moul mt-1">ប្រធានការិយាល័យសិក្សា</p>
             </div>
+          </div>
+        
+          {/* Bottom Left: Branch Director */}
+          <div className="mt-14 text-left text-sm font-sans text-black leading-loose">
+            <p className="mb-2">បានត្រួតពិនិត្យ និងឯកភាព</p>
+            <p className="font-moul text-lg">នាយកសាខា</p>
+          </div>
         </div>
       </div>
       ) : (
