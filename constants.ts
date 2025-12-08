@@ -2,11 +2,11 @@ import { Category, RatingValue } from './types';
 
 // Web App URL សម្រាប់ភ្ជាប់ទៅ Google Sheets
 // Updated to the latest Deployment ID provided by the user
-export const GOOGLE_SHEETS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5vXwG441UF0mM3knp-PCKIEGlUrAOt_AkiW1ZnuBz4l-Qpm2SUE3fs92rher9FQGVqA/exec";
+export const GOOGLE_SHEETS_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SHEETS_URL;
 
 // Admin Credentials
-export const ADMIN_USERNAME = 'admin';
-export const ADMIN_PASSWORD = 'admin123';
+export const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME;
+export const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
 export const TEACHER_INFO_DEFAULT = {
   name: 'ជិន ពិសិដ្ឋ', // Default to first teacher
