@@ -11,3 +11,30 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+# ----------------------------
+# 🔐 Security Headers
+# ----------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+  # Protects from XSS / Injection
+  Content-Security-Policy = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*; frame-ancestors 'self';"
+
+  # Prevent Clickjacking
+  X-Frame-Options = "SAMEORIGIN"
+
+  # Prevent MIME-type sniffing
+  X-Content-Type-Options = "nosniff"
+
+  # Browser XSS Filter
+  X-XSS-Protection = "1; mode=block"
+
+  # Remove referrer details for privacy
+  Referrer-Policy = "strict-origin-when-cross-origin"
+
+  # Block unused browser permissions
+  Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+  # Faster Cache handling
+  Vary = "Accept-Encoding"
